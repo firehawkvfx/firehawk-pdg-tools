@@ -1,4 +1,4 @@
-# Firehawk PDG Tools - For Side FX Houdini
+# Firehawk PDG Tools
 
 For houdini 18.5.596 and higher.  This has been tested on Ubuntu 18.04, CentOS 7 and MacOS 11.4.
 
