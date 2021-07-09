@@ -1,13 +1,17 @@
 # firehawk-pdg-tools
 
-For houdini 18.5.596 and higher.
+For houdini 18.5.596 and higher.  This has been tested on Ubuntu 18.04, CentOS 7 and MacOS 11.4.
 
-Firehawk PDG tools is an implementation for PDG enabling common required abilities for production:
+Firehawk PDG tools is an implementation for PDG enabling common required abilities for production.  It has been used and contributed to by Rising Sun Pictures and Stormborn Studios.
+
+# Features:
 - Auto versioning of directories / paths when new cooks occur.
-- Wedging large numbers of output across assets, shots, variations.
+- Wedging large numbers of output across shots, elements and variations - everything is a wedge.
 - Timestamped immutable hip files to reproduce submissions.
 - Suitable hooks to modify asset requests if required (eg. if you use a database for your assets)
-- Python plugin architcture allowing customisation for studio specific requirements
-- An example clone of the local scheduler implementing the firehawk submit functions.  It's also possible to apply these tools to any scheduler during the onschedule callback.
+- Python plugin architecture allowing customisation for studio specific requirements, like DB requests for new assets.
+- An example clone of the local scheduler implementing the Firehawk submit class.  It's also possible to apply these tools to any scheduler in their onschedule callback.
 
-All you needs to do is place firehawk_pdg_tools.json and firehawk_pdg_tools folder in your ~/houdini18.5/packages path.  You may need to create the 'packages' folder if it doesn't alreaady exist.
+# Installation
+
+All you need to do is place firehawk_pdg_tools.json and firehawk_pdg_tools folder in your ~/houdini18.5/packages path.  You may need to create the 'packages' folder if it doesn't alreaady exist.
