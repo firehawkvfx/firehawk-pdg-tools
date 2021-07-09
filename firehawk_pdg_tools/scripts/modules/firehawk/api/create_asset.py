@@ -76,7 +76,7 @@ def _create_asset(tags, auto_version=True, version_str=None, create_dirs=True): 
     else:
         pdg_dir = tags['pdg_dir']
     
-    default_prod_root=os.path.join( pdg_dir , 'firehawk' ) # if pdg dir is not in tags, resolve standard houdini placeholder
+    default_prod_root=os.path.join( pdg_dir , 'output' ) # if pdg dir is not in tags, resolve standard houdini placeholder
 
     prod_root = os.getenv('PROD_ROOT', default_prod_root) # the env var PROD_ROOT can override an absolute output path.
 
@@ -87,16 +87,6 @@ def _create_asset(tags, auto_version=True, version_str=None, create_dirs=True): 
     if auto_version: # aquire the next version for output and create the directory.
 
         contained_dirs = os.listdir(dir_name)
-
-        # def get_size(start_path = None):
-        #     total_size = 0
-        #     for dirpath, dirnames, filenames in os.walk(start_path):
-        #         for f in filenames:
-        #             fp = os.path.join(dirpath, f)
-        #             # skip if it is symbolic link
-        #             if not os.path.islink(fp):
-        #                 total_size += os.path.getsize(fp)
-        #     return total_size
 
         firehawk_logger.debug('contained_dirs: {}'.format( contained_dirs ))
         version_int_list = [ version_str_to_int(x, silent=True) for x in contained_dirs if version_str_to_int(x, silent=True) is not None ] # get all versions in dir
@@ -155,8 +145,6 @@ def createAssetPath(**tags): # This method should create an asset if version_str
     if tags['volatile']=='off': tags['volatile']=False
 
     firehawk_logger.debug( 'createAssetsFromArguments with tags: {}'.format(tags) )
-
-
 
     try:
         if 'version_str' in tags and tags['version_str'] is not None: # When version_str is provided, use that and don't auto increment.  Otherwise, request the server to auto inc the version.
