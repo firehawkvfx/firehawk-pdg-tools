@@ -14,4 +14,11 @@ Firehawk PDG tools is an implementation for PDG enabling common required abiliti
 
 # Installation
 
-All you need to do is place firehawk_pdg_tools.json and firehawk_pdg_tools folder in your ~/houdini18.5/packages path.  You may need to create the 'packages' folder if it doesn't alreaady exist.
+All you need to do is place firehawk_pdg_tools.json and firehawk_pdg_tools folder in your ~/houdini18.5/packages path.  You may need to create the 'packages' folder if it doesn't already exist.
+
+# Demo
+
+- Open the firehawk.pdg.versioning.demo.hip file
+- Right click on /obj/sop_geo_process/topnet1/ropfetch_flipbook, and select 'Cook with Preflight'
+- Once it is cooked, if you select to cook again, nothing should occur since the outputs exist on disk.  You should also be able to see the versions of the assets populate on the output nodes.
+
