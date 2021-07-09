@@ -1,0 +1,15 @@
+Operator:     firehawklocalscheduler
+Label:        Firehawk Local Scheduler
+Path:         oplib:/Top/firehawklocalscheduler?Top/firehawklocalscheduler
+Icon:         TOP_localscheduler
+Table:        Top
+License:      
+Extra:        pdgtype='scheduler' subtype=firehawklocalscheduler 
+User:         
+Inputs:       0 to 0
+Outputs:      0
+Subnet:       false
+Python:       false
+Empty:        false
+Modified:     Sat Jun 26 17:37:51 2021
+

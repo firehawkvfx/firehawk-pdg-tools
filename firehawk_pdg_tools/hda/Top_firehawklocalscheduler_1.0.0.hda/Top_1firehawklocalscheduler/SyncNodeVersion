@@ -1,0 +1,11 @@
+node = kwargs['node']
+oldversion_str = kwargs['old_version']
+
+if oldversion_str == '':
+    oldversion = 0
+else:
+    oldversion = int(oldversion_str)
+    
+if oldversion < 1:
+    # Old hip - set Mapping Mode to None
+    node.parm('pdg_mapmode').set(1)

@@ -1,0 +1,37 @@
+{
+    "env" : [
+        {
+            "FIREHAWK_HOUDINI_TOOLS" : "$HOUDINI_PACKAGE_PATH/firehawk_pdg_tools"
+        },
+        {
+            "PYTHONPATH" : {
+                "method" : "append",
+                "value" : ["$FIREHAWK_HOUDINI_TOOLS/scripts/modules"]
+            }
+        },
+        {
+            "HOUDINI_SCRIPT_PATH" : {
+                "method" : "prepend",
+                "value" : ["$FIREHAWK_HOUDINI_TOOLS"]
+            }
+        },
+        {
+            "HOUDINI_PATH" : {
+                "method" : "prepend",
+                "value" : ["$FIREHAWK_HOUDINI_TOOLS"]
+            }
+        },
+        {
+            "HOUDINI_MENU_PATH" : {
+                "method" : "prepend",
+                "value" : ["$FIREHAWK_HOUDINI_TOOLS/scripts/menus"]
+            }
+        },
+        {
+            "HOUDINI_OTLSCAN_PATH" : {
+                "method" : "prepend",
+                "value" : ["$FIREHAWK_HOUDINI_TOOLS/hda"]
+            }
+        }
+    ]
+}

@@ -1,0 +1,73 @@
+
+Firehawk dynamic versions allows a JSON file or pdg attribute to define the set of versions for any houdini node that should be present on a multiparm. It will also create the multiparm if not present.
+
+Minimum Usage:
+
+- a dictionary with entries defining versions (see below for more information on this):
+    json_object[ version_db_hou_node.path() ][ 'version_'+index_key ] = str(aquired_version)
+- entries for the output parms expressions used to write and read files.
+    json_object[ version_db_hou_node.path() ][ 'parm_'+parm_name ] = my_expression
+where my expression uses unexpanded strings like:
+/prod/`chs("seq")`/`chs("shot")`/components/`chs("element")`/geoCache/`chs("variant")`/`chs("version_str")`/bgeo.sc/stereo_`chs("seq")`_`chs("shot")`_`chs("element")`_`chs("variant")`_`chs("version_str")`.$F4.bgeo.sc
+- user data on '/' that defines the path 'last_submitted_hip_file' intended for the farm
+- The above json_object data is dumped to a .json file matching the name of 'last_submitted_hip_file'
+
+Reading the dictionary from a PDG work item attribute allows it to be updated for each work item progressively throughout a submission.  It would also be possible to read an environment variable to avoid disk if not using PDG.  The disk file should always be written even if not used since it is needed for file recovery and consistency of the versions if the hip is reused.  
+
+If the dict is read off disk, a limitation is it should only be written once per submission, before the file is loaded by the intend hip file that will load the data. It should have the same name as the hip file being submitted to the farm (replacing .hip with .json), existing in the same folder.  It is a side car file intended for that hip file's usage which is the reason for the naming convention and one wont work without the other.
+
+The included 456.py in this repository shows how the file can be pulled on hip load.  pull_all_versions_to_all_multiparms will look for the json file that matches the current hip path stored as user data 'last_submitted_hip_file' on '/'.
+
+If 'last_submitted_hip_file' user data has been set, then it is possible for the current user's hip file to also load the data, not just a hip file intended for the renderfarm, ensuring consistency.
+
+If you intend to update the versions multiple times throughout a submission, but only submit one hip file, and not use a pdg work item to define the dictionary, you would instead want the json dictionary to be a base64 encoded enviroment variable.  This is not currently supported, but would be fairly trivial to implement.
+
+In order for people to make alterations to versions in their hip file that wont be replaced, so long as the last json file was loaded, they can make changes after that point.  The json file will only define changes to the parms required, and they are only applied if the last md5 recorded for a dictionary doesn't match the incoming json dictionary.
+When versions or other parameter replacements are pulled from the json file, an MD5 hash of that dictionary is stored on '/' as user data which allows us to verify if the data was pulled, and avoid repeated application of the version set.
+
+See the end of firehawk_submit.py for how we write the json file structure.  We should probably write basic methods to manage the json_dict structure going forward and keep them in firehawk_dynamic_versions.py
+
+example json dict entry:
+json_object[ version_db_hou_node.path() ][ 'version_'+index_key ] = str(aquired_version)
+
+Where aquired_version is an int and index_key is a string of the form:
+'seq.shot.element.variant'
+
+version_db_hou_node is the node intended to store the data, usually a rop geometry node or similar.  It is possible for the node that stores the data as user data to be different to where the multiparm resides for reasons in PDG, but generally assume these nodes should be the same.
+
+The data is written to disk on the line:
+json.dump( json_object, versiondb_file )
+
+How can wedges define what is written / read?
+Per wedge variations:
+The dictionary can also define other direct parm value replacements:
+json_object[ hou_node.path() ][ 'parm_'+parm_name ] = value
+
+We use this to update the index key expression on the node.  The value of the index key resolves the values for the seq, shot, element, variant, and version parms at the top of the spare parm folder for each node.
+
+In firehawk submit we use:
+self.persistent_override( hou_node_path=hou_node_path, parm_name='version_db_index_key', value=index_key, existence_check=False )
+but this should probably become a seperate function in firehawk_dynamic verisons...
+
+This expression is unique for each wedge.  It could also be avoided by getting the expressions the resolve the result (seq, shot, element, variant, and version) to look at an environment variable.  If not using PDG, I'd reccomend this expression use environment variables.
+'$WEDGE_SEQ.$WEDGE_SHOT.$WEDGE_ELEMENT.$WEDGE_VARIANT'
+This would be instead of the pdg equivalent:
+'`@seq`.`@shot`.`@element`.`@variant`'
+
+And then in submission, ensure those env vars are set for the wedge.  A helper tool can also be used to help users set the env vars they wish to use.
+
+Output parm expression:
+So with that you have the values that can resolve uniquely for each wedge.  We also need to define the expression for how that is used:
+self.persistent_override( hou_node_path=hou_node_path, parm_name=output_parm_name, value=set_output )
+
+set_output is the defined unexpanded string that should resolve to a path on disk:
+/prod/`chs("seq")`/`chs("shot")`/components/`chs("element")`/geoCache/`chs("variant")`/`chs("version_str")`/bgeo.sc/stereo_`chs("seq")`_`chs("shot")`_`chs("element")`_`chs("variant")`_`chs("version_str")`.$F4.bgeo.sc
+
+To see an example of how PDG can use an input schema, the output_prep top node constructs this attribute by a schema provided externally, but you are free to construct this however you wish.
+This expression shouldn't have to change per wedge, but it must exist as a minimum, so this parm override is always defined for any node that will write output.
+
+How to use a single hip file for multiple submisisons:
+When PDG is used, each time a the hip file is loaded, a work item attribute specifies the unique value of index_key to be used, which resolves the relevent value for any output parm and version on a node.  If not using PDG, and you want to use this tool set for more than just tracking submission history (ie you wnat to actually set output paths for each wedge but rendering a single hip too), then you will need to construct a method so that each wedge will inherit the index key as an environment variable.  it will need to be set in the environment, and you will need to set the index_key on the node to resolve env vars instead of pdg attributes.
+Ideally you want to place as many known versions and parms that must be set in the dicitionary as possible for a single submisison before submisison occurs, but it would also be possible to store the json object as an env var as well, updating it as you go throughout the submisison.
+
+The json object should contain all accumulated changes made in a submission.  this makes it possible for a dependency to inherit all wedges if they are available, not just the specific wedge being submitted.

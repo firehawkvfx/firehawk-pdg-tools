@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<menuDocument>
+    <menu>
+        <!-- IMPORTED FIREHAWK PDG MENU ENTRIES -->
+
+        <separatorItem/>
+        
+        <!-- Multiparm version tracking -->
+        <scriptItem id="opmenu.versiondb_update_rop_template_for_selected_nodes">
+            <label>VersionDB Update Rop Template for Selected SOP/TOP Nodes</label>
+            <context>
+                <expression><![CDATA[
+                    ### Determine if item is visible ###
+                    import firehawk_dynamic_versions
+                    node = kwargs["node"]
+                    type_name = node.type().nameComponents()[-2]
+                    if type_name not in firehawk_dynamic_versions.versions(node).output_types and type_name != 'ropfetch':
+                        return False
+                    return True
+                ]]></expression>
+            </context>
+            <scriptCode>import firehawk_dynamic_versions; firehawk_dynamic_versions.versions( kwargs["node"] ).update_rop_output_paths_for_selected_nodes( kwargs=kwargs, version_db=True )</scriptCode>
+        </scriptItem>
+        
+        <!-- Assign node as preflight -->
+        <!-- <scriptItem id="opmenu.assign_node_for_topnet_preflight">
+            <label>Assign Node For TOPNET Preflight</label>
+            <context>
+                <expression><![CDATA[
+                    ### Determine if item is visible ###
+                    node = kwargs["node"]
+                    category = node.type().category().name()
+                    if category != 'Top':
+                        return False
+                    return True
+                ]]></expression>
+            </context>
+            <scriptCode>import firehawk_submit as firehawk_submit; firehawk_submit.submit( kwargs["node"] ).assign_preflight()</scriptCode>
+        </scriptItem> -->
+        
+        <!-- Dirty Upstream Source Nodes -->
+        <!-- <scriptItem id="opmenu.dirty_upstream_source_nodes">
+            <label>Dirty Upstream Source Nodes</label>
+            <context>
+                <expression><![CDATA[
+                    ### Determine if item is visible ###
+                    node = kwargs["node"]
+                    category = node.type().category().name()
+                    if category != 'Top':
+                        return False
+                    return True
+                ]]></expression>
+            </context>
+            <scriptCode>import firehawk_submit as firehawk_submit; firehawk_submit.submit( kwargs["node"] ).dirty_upstream_source_nodes()</scriptCode>
+        </scriptItem> -->
+
+        <!-- Protect Upstream Workitem Directories -->
+        <!-- <scriptItem id="opmenu.protect_upstream_workitem_directories">
+            <label>Protect Upstream Workitem Directories</label>
+            <context>
+                <expression><![CDATA[
+                    ### Determine if item is visible ###
+                    node = kwargs["node"]
+                    category = node.type().category().name()
+                    if category != 'Top':
+                        return False
+                    return True
+                ]]></expression>
+            </context>
+            <scriptCode>import firehawk_submit as firehawk_submit; firehawk_submit.submit( kwargs["node"] ).protect_upstream_workitem_directories()</scriptCode>
+        </scriptItem> -->
+
+        <!-- Submit With Preflight -->
+        <scriptItem id="opmenu.submit_with_preflight">
+            <label>Cook (With Preflight)</label>
+            <context>
+                <expression><![CDATA[
+                    ### Determine if item is visible ###
+                    node = kwargs["node"]
+                    category = node.type().category().name()
+                    if category != 'Top':
+                        return False
+                    return True
+                ]]></expression>
+            </context>
+            <!-- <scriptCode>import firehawk_preflight; firehawk_preflight.Preflight( kwargs["node"] ).cook()</scriptCode> -->
+            <scriptCode>import firehawk_plugin_loader; firehawk_plugin_loader.module_package('pre_flight').pre_flight.Preflight( kwargs["node"] ).cook()</scriptCode>
+        </scriptItem>
+
+        <scriptItem id="opmenu.update_versions">
+            <label>Retrieve Submitted PDG Versions (From Last Submission)</label>
+            <context>
+                <expression><![CDATA[
+                    ### Determine if item is visible ###
+                    return True
+                ]]></expression>
+            </context>
+            <scriptCode>import firehawk_dynamic_versions; firehawk_dynamic_versions.versions( kwargs["node"] ).pull_all_versions_to_all_multiparms( check_hip_matches_submit=False, exec_in_main_thread=False, use_json_file=True )</scriptCode>
+        </scriptItem>
+
+        <scriptItem id="opmenu.reload_pdg_libraries">
+            <label>Reload PDG Python Libraries</label>
+            <context>
+                <expression><![CDATA[
+                    ### Determine if item is visible ###
+                    import firehawk_plugin_loader;
+                    return firehawk_plugin_loader.module_package('menu_visibility').menu_visibility.reload_pdg_visibility(kwargs)
+                ]]></expression>
+            </context>
+            <scriptCode>import firehawk_plugin_loader; firehawk_plugin_loader.module_package('menu_functions').menu_functions.reload_pdg()</scriptCode>
+        </scriptItem>
+    </menu>
+</menuDocument>

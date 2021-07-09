@@ -1,0 +1,374 @@
+# Dialog script for firehawklocalscheduler automatically generated
+
+{
+    name	firehawklocalscheduler
+    script	firehawklocalscheduler
+    label	"Firehawk Local Scheduler"
+
+    help {
+	""
+    }
+
+    group {
+        name    "folder0"
+        label   "Scheduler"
+
+        groupsimple {
+            name    "folder4"
+            label   "Paths"
+
+            parm {
+                name    "pdg_workingdir"
+                label   "Working Directory"
+                type    directory
+                default { "$HIP" }
+            }
+            parm {
+                name    "pdg_mapmode"
+                label   "Path Mapping"
+                type    ordinal
+                default { "0" }
+                menu {
+                    "0" "Global"
+                    "1" "None"
+                }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_usemapzone"
+                label   "Use Path Map Zone"
+                type    toggle
+                nolabel
+                joinnext
+                default { "0" }
+                disablewhen "{ pdg_mapmode == 1 }"
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_mapzone"
+                label   "Path Map Zone"
+                type    string
+                default { "$PDG_PATHMAP_ZONE" }
+                disablewhen "{ pdg_usemapzone == 0 }"
+                menureplace {
+                    "POSIX" "POSIX"
+                    "WIN"   "WIN"
+                }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_validateoutputs"
+                label   "Validate Outputs When Recooking"
+                type    toggle
+                default { "1" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_checkexpectedoutputs"
+                label   "Check Expected Outputs on Disk"
+                type    toggle
+                default { "0" }
+                parmtag { "script_callback" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+        parm {
+            name    "socketcallbacks"
+            label   "Use Socket callbacks instead of stdout tokens"
+            type    integer
+            invisible
+            default { "1" }
+            range   { 0 10 }
+        }
+        groupsimple {
+            name    "folder5"
+            label   "Scheduling"
+
+            parm {
+                name    "maxprocsmenu"
+                label   "Total Slots"
+                type    ordinal
+                joinnext
+                default { "0" }
+                menu usetokenvalue {
+                    "0"     "Equal to 1/4 of Total CPU Count"
+                    "-1"    "Equal to CPU Count Less One"
+                    "1"     "Custom Slot Count"
+                }
+            }
+            parm {
+                name    "maxprocs"
+                label   "maxprocs"
+                type    integer
+                nolabel
+                default { "1" }
+                disablewhen "{ maxprocsmenu != 1 }"
+                range   { -4 128 }
+                parmtag { "autoscope" "0000000000000000" }
+            }
+            parm {
+                name    "verbose"
+                label   "Verbose Logging"
+                type    toggle
+                default { "0" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_waitforfailures"
+                label   "Block on Failed Work Items"
+                type    toggle
+                default { "0" }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+        groupsimple {
+            name    "folder1"
+            label   "Temp Directory"
+
+            parm {
+                name    "tempdirmenu"
+                label   "Location"
+                type    ordinal
+                default { "1" }
+                menu {
+                    "0" "Working Directory"
+                    "1" "Houdini Temp"
+                    "2" "Custom"
+                }
+            }
+            parm {
+                name    "tempdirappendpid"
+                label   "Append PID"
+                type    toggle
+                default { "1" }
+            }
+            parm {
+                name    "tempdircustom"
+                label   "Custom"
+                type    directory
+                default { "$HOUDINI_TEMP_DIR/$HIPNAME/pdgtemp" }
+                disablewhen "{ tempdirmenu != 2 }"
+            }
+        }
+
+    }
+
+    group {
+        name    "folder0_1"
+        label   "Job Parms"
+
+        groupsimple {
+            name    "folder0_2"
+            label   "Scheduling"
+
+            parm {
+                name    "local_single"
+                label   "Single"
+                type    toggle
+                default { "0" }
+                range   { 0 10 }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "local_is_CPU_number_set"
+                label   "local_is_CPU_number_set"
+                type    toggle
+                nolabel
+                joinnext
+                default { "0" }
+                range   { 0 1 }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "local_CPUs_to_use"
+                label   "Slots Per Work Item"
+                type    integer
+                default { "1" }
+                disablewhen "{ local_is_CPU_number_set == 0 }"
+                range   { 1! 64 }
+                parmtag { "pdg::scheduler" "" }
+            }
+            groupsimple {
+                name    "folder6"
+                label   "Minimum Available Memory"
+
+                parm {
+                    name    "local_useminfreemem"
+                    label   "Rule"
+                    type    ordinal
+                    default { "0" }
+                    menu {
+                        "0" "No Minimum"
+                        "1" "MB Available"
+                        "2" "Percent Available"
+                    }
+                    parmtag { "pdg::scheduler" "" }
+                    parmtag { "script_callback_language" "python" }
+                }
+                parm {
+                    name    "local_minfreemem"
+                    label   "Minimum MB"
+                    type    float
+                    default { "0" }
+                    disablewhen "{ local_useminfreemem != 1 }"
+                    range   { 0 128000 }
+                    parmtag { "pdg::scheduler" "" }
+                    parmtag { "script_callback_language" "python" }
+                }
+                parm {
+                    name    "local_minfreemempct"
+                    label   "Minimum Percent"
+                    type    float
+                    default { "0" }
+                    disablewhen "{ local_useminfreemem != 2 }"
+                    range   { 0 1 }
+                    parmtag { "pdg::scheduler" "" }
+                    parmtag { "script_callback_language" "python" }
+                }
+            }
+
+        }
+
+        groupsimple {
+            name    "folder2"
+            label   "Tasks"
+
+            parm {
+                name    "local_echandleby"
+                label   "On Task Failure"
+                type    ordinal
+                default { "0" }
+                menu {
+                    "0" "Report Error"
+                    "1" "Report Warning"
+                    "2" "Retry Task"
+                    "3" "Ignore"
+                }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "local_echandleall"
+                label   "Handle All Non Zero"
+                type    toggle
+                default { "1" }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "local_eccustomcode"
+                label   "Exit Code"
+                type    integer
+                default { "1" }
+                disablewhen "{ local_echandleall != 0 }"
+                range   { 1 255 }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "sepparm"
+                label   "Separator"
+                type    separator
+                default { "" }
+            }
+            parm {
+                name    "local_maximumretries"
+                label   "Maximum Retries"
+                type    integer
+                default { "3" }
+                disablewhen "{ local_echandleby != 2 }"
+                range   { 0 10 }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "local_addfailcountattr"
+                label   "Retry Count Attribute"
+                type    toggle
+                joinnext
+                default { "0" }
+                disablewhen "{ local_echandleby != 2 }"
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "local_failcountattr"
+                label   "local_failcountattr"
+                type    string
+                nolabel
+                default { "failurecount" }
+                disablewhen "{ local_addfailcountattr == 0 } { local_echandleby != 2 }"
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+        groupsimple {
+            name    "folder3"
+            label   "Task Environment"
+
+            parm {
+                name    "local_usehoudinimaxthreads"
+                label   "local_usehoudinimaxthreads"
+                type    toggle
+                nolabel
+                joinnext
+                default { "0" }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "local_houdinimaxthreads"
+                label   "Houdini Max Threads"
+                type    integer
+                default { "0" }
+                disablewhen "{ local_usehoudinimaxthreads == 0 }"
+                range   { 0 10 }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "local_requireswindow"
+                label   "Requires GUI Window"
+                type    toggle
+                default { "0" }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "local_envunset"
+                label   "Unset Variables"
+                type    string
+                default { "" }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            multiparm {
+                name    "local_envmulti"
+                label    "Environment Variables"
+                parmtag { "pdg::nocopy" "" }
+                parmtag { "script_callback" "" }
+                parmtag { "script_callback_language" "hscript" }
+
+                parm {
+                    name    "local_envname#"
+                    label   "Name"
+                    type    string
+                    joinnext
+                    default { "" }
+                    parmtag { "pdg::scheduler" "" }
+                }
+                parm {
+                    name    "local_envvalue#"
+                    label   "Value"
+                    type    string
+                    default { "" }
+                    parmtag { "pdg::scheduler" "" }
+                }
+            }
+
+        }
+
+    }
+
+}
