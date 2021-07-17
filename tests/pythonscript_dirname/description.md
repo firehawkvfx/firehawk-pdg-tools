@@ -14,7 +14,7 @@ Steps to reproduce:
 
 - open the hip file 
 - right click on /obj/sop_geo_process/topnet1/mplay1
-- select cook with preflight
+- select 'cook with preflight'
 
 The issue is somewhat intermittent, so you may have to delete all the written output and cook again to reproduce this.
 

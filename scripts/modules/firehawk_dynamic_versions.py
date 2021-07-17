@@ -37,7 +37,7 @@ class versions():
 
         self.logger_object = logger_object
 
-        self.parm_template_version = '0.2.1'
+        self.parm_template_version = '0.2.3'
         self.output_types = { # Defines valid node types that will inherit the version_db multiparm tab.
             'alembic': {
                 'output': 'sop_path', 'extension': 'abc', 'type_path': 'cache', 'static_expression': True
@@ -259,6 +259,7 @@ class versions():
             job_default=""
             seq_default=""
             shot_default=""
+            verbosity_default=0
             # If JOB SEQ and SHOT are available as env vars, they can be used as default values.
             if len( os.getenv('JOB', '') ) > 0 and len( os.getenv('SEQ', '') ) > 0 and len( os.getenv('JOB', '') ) > 0:
                 job_default="$JOB"
@@ -274,6 +275,10 @@ class versions():
             parm_folder.addParmTemplate(parm_template)
             
             parm_template = hou.StringParmTemplate("shot", "Shot", 1, [shot_default])
+            parm_template.setJoinWithNext(False)
+            parm_folder.addParmTemplate(parm_template)
+
+            parm_template = hou.IntParmTemplate("debug_verbosity", "Debug Verbosity", 1, [verbosity_default])
             parm_template.setJoinWithNext(False)
             parm_folder.addParmTemplate(parm_template)
 

@@ -2,3 +2,5 @@
 example_hip/backup/*
 example_hip/output/*
 hda/backup/*
+tests/*/backup/*
+tests/*/output/*
