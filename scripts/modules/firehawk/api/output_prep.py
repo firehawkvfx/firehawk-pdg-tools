@@ -167,7 +167,6 @@ def update_workitems(pdg_node, item_holder, upstream_items, generation_type, eva
             else: 
                 set_output = pdg_node.parameter('set_output').evaluateString() # evaluating this as a unique value for every work item is not recommended, this logic may take a long time to do so!
             index_key_expanded = pdg_node['index_key_expanded'].evaluateString()
-            #index_key_expanded = hou.expandString( index_key_unexpanded ) # the expression must always be evaluated for this work item, not other work items
         
         work_item.setStringAttrib('set_output', set_output)
         

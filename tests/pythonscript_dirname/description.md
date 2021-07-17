@@ -1,4 +1,6 @@
-Description of the problem:
+Description of problems:
+
+1.  
 
 Work item fails on /obj/sop_geo_process/topnet1/mplay1/dirname2:
 ```
@@ -21,3 +23,7 @@ Houdini Version:
 
 OS:
 Ubuntu 18.04
+
+2.  
+
+Open GL ROP will not render with Intel Iris Graphics - Macbook Pro
