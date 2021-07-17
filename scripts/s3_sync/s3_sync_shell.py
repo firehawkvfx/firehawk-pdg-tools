@@ -55,7 +55,7 @@ sys.path.append('/usr/lib64/python2.7/site-packages')
 home_site_packages = os.path.expanduser('~/.local/lib/python2.7/site-packages')
 sys.path.append(home_site_packages)
 sys.path.append('/usr/lib/python2.7/site-packages')
-s3_sync_path = os.environ['FIREHAWK_HOUDINI_TOOLS'] + '/scripts/s3_sync'
+s3_sync_path = os.environ['FIREHAWK_PDG_TOOLS'] + '/scripts/s3_sync'
 sys.path.append(s3_sync_path)
 #sys.path.append('/home/deadlineuser/houdini17.5/scripts/s3_sync')
 

@@ -48,7 +48,7 @@ from pdg.utils import TickTimer, expand_vars
 
 ### Firehawk versioning alterations
 import hou
-menu_path = os.path.join(os.path.realpath(os.environ['FIREHAWK_HOUDINI_TOOLS']), 'scripts/modules')
+menu_path = os.path.join(os.path.realpath(os.environ['FIREHAWK_PDG_TOOLS']), 'scripts/modules')
 sys.path.append(menu_path)
 import firehawk_submit as firehawk_submit
 ###

@@ -14,7 +14,7 @@ Firehawk PDG tools is an implementation for PDG enabling common required abiliti
 
 # Installation
 
-All you need to do is place firehawk_pdg_tools.json and firehawk_pdg_tools folder in your ~/houdini18.5/packages path.  You may need to create the 'packages' folder if it doesn't already exist.
+All you need to do is place firehawk-pdg-tools.json and firehawk-pdg-tools folder in your ~/houdini18.5/packages path.  You may need to create the 'packages' folder if it doesn't already exist.
 
 # Demo
 
