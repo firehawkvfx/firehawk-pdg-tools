@@ -5,6 +5,10 @@ import re
 import hou, pdg
 import time
 
+from os.path import sep, join
+def pjoin(*args, **kwargs):
+    return join(*args, **kwargs).replace(sep, '/') # for windows compatibility.
+
 parmprefix='firehawk_read'
 spacer=''
 debug=0
@@ -133,7 +137,7 @@ def resolve_pdg_vars(path, work_item=None, node_path=None):
             print( 'result path: {}'.format( path ) )
         else:
             print('WARNING: No PDG_DIR found')
-    return path
+    return pjoin( os.path.normpath( path ) )
 
 def get_output_index_key_expr(hou_node, debug=debug):
     version_db_hou_node_path = get_version_db_hou_node_path( hou_node_path=hou_node.path() ) # the version db may not reside on the output node.

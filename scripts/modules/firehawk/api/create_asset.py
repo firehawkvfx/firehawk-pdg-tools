@@ -13,6 +13,10 @@ firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit
 firehawk_logger.timed_info(label='create_asset plugin loaded')
 firehawk_logger.debug('test debug logger')
 
+from os.path import sep, join
+def pjoin(*args, **kwargs):
+    return join(*args, **kwargs).replace(sep, '/') # for windows compatibility.
+
 def add_dependency(path, ancestor_path): # this is an asset dependency db hook, not execution dependency
     return
 
@@ -58,7 +62,7 @@ def returnFileName(**tags): # format's the provided tags and version into a file
     tags['extension'] = returnExtension(**tags)
     
     if 'format' in tags.keys() and 'dir_name' in tags.keys(): # append the format into the path if it is known
-        tags['dir_name'] = os.path.join( tags['dir_name'], tags['extension'] )
+        tags['dir_name'] = pjoin(tags['dir_name'], tags['extension'])
 
     if tags['asset_type']=='setup':
         tags['file_name'] = '{}_{}_{}_{}_{}_{}.{}'.format(tags['job'], tags['seq'], tags['shot'], tags['element'], tags['variant'], tags['version_str'], tags['extension'])
@@ -88,11 +92,11 @@ def _create_asset(tags, auto_version=True, version_str=None, create_dirs=True): 
     else:
         pdg_dir = tags['pdg_dir']
     
-    default_prod_root=os.path.join( pdg_dir , 'output' ) # if pdg dir is not in tags, resolve standard houdini placeholder
+    default_prod_root= pjoin( os.path.normpath( pdg_dir ) , 'output' ) # if pdg dir is not in tags, resolve standard houdini placeholder
 
     prod_root = os.getenv('PROD_ROOT', default_prod_root) # the env var PROD_ROOT can override an absolute output path.
 
-    dir_name = os.path.join(prod_root, tags['job'], tags['seq'], tags['shot'], tags['element'], tags['variant'], tags['asset_type'] ) # the base path before the version folder
+    dir_name = pjoin(prod_root, tags['job'], tags['seq'], tags['shot'], tags['element'], tags['variant'], tags['asset_type']) # the base path before the version folder
     firehawk_logger.debug('_create_asset: {}'.format(dir_name))
     if create_dirs: _ensure_dir_exists(dir_name)
 
@@ -111,7 +115,7 @@ def _create_asset(tags, auto_version=True, version_str=None, create_dirs=True): 
     elif version_str is None:
         raise Exception('ERROR: auto_version is false but no version_str provided.')
 
-    dir_name = os.path.join(dir_name, version_str) # the full path with the version
+    dir_name = pjoin(dir_name, version_str) # the full path with the version
     if create_dirs: _ensure_dir_exists(dir_name)
 
     return dir_name, version_str

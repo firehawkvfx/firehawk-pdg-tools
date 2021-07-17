@@ -28,6 +28,11 @@ debug_default = int( os.getenv('DEBUG_PDG', 0) )
 
 import firehawk_plugin_loader
 
+from os.path import sep, join
+def pjoin(*args, **kwargs):
+    return join(*args, **kwargs).replace(sep, '/') # for windows compatibility.
+
+
 # firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=debug_default)
 
 # firehawk_logger.timed_info(label='create_asset plugin loaded')
@@ -169,7 +174,7 @@ class asset():
                 self.debugLog( "asset_dir: {}".format( asset_dir ) )
             
             if None not in [ asset_dir, asset_filename ]:
-                asset_path = os.path.join( asset_dir, asset_filename )
+                asset_path = pjoin( asset_dir, asset_filename )
             else:
                 self.debugLog('...Asset create did not return either of file name or dir' )
 
