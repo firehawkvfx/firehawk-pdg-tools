@@ -71,7 +71,7 @@ pdgkvstore = firehawk_plugin_loader.module_package('pdgkvstore').pdgkvstore
 houpdgkvstore = firehawk_plugin_loader.module_package('houpdgkvstore').houpdgkvstore
 
 import firehawk_plugin_loader
-firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=10)
+firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger()
 firehawk_logger.timed_info(label='firehawk scheduler loaded')
 firehawk_logger.debug('test debug logger')
 
@@ -99,19 +99,19 @@ class FirehawkLocalScheduler(LocalScheduler):
         for key in required_components:
             value = firehawk_read.getLiveParmOrAttribValue(work_item, key, type='string')
             kv = { key: value }
-            print( 'update kv: {}'.format( kv ) )
+            firehawk_logger.debug( 'update kv: {}'.format( kv ) )
             kwargs.update( kv )
         
         kwargs['version'] = 'v'+str( work_item.intAttribValue('version') ).zfill(3)
         kwargs['subindex'] = work_item.batchIndex
         
-        print('kvstore kwargs: {}'.format( kwargs ))
+        firehawk_logger.debug('kvstore kwargs: {}'.format( kwargs ))
         if all( [ x in kwargs for x in required_components ] ): # If all components are available, then stash job data in our kv store.
             key = '{}/{}/{}/{}/{}/{}/{}'.format( kwargs['job'], kwargs['seq'], kwargs['shot'], kwargs['element'], kwargs['variant'], kwargs['version'], kwargs['subindex'] )
             value = {
                 'log_uri': { 'value': self.getLogURI(work_item), 'type': 'string'}
             }
-            print('write: {}'.format( value ) )
+            firehawk_logger.debug('write: {}'.format( value ) )
             pdgkvstore.work_item_db_put(key, value) # write value to disk, or a database if available.
                 
         self._verboseLog("End presubmit")
@@ -135,5 +135,5 @@ class FirehawkLocalScheduler(LocalScheduler):
     #     return uri+'?file/firehawk/log'
 
     def registerTypes(type_registry): 
-         print("Init firehawklocalscheduler schedulers") 
+        firehawk_logger.info("Init firehawklocalscheduler schedulers") 
  

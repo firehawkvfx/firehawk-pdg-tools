@@ -111,7 +111,7 @@ def get_output(hou_node, work_item=None, set_output=None, output_parm_name=None,
 def resolve_pdg_vars(path, work_item=None, node_path=None):
     
     if '__PDG_DIR__' in path:
-        print( '__PDG_DIR__ in: {}'.format( path ) )
+        debugLog( '__PDG_DIR__ in: {}'.format( path ) )
         pdg_dir = None
 
         if work_item is None and node_path is None:
@@ -130,11 +130,11 @@ def resolve_pdg_vars(path, work_item=None, node_path=None):
         # elif 'workingdir_local' in user_data_dict: # we can resolve the working dir for the local session as well.
         #     pdg_dir = user_data_dict['workingdir_local']
         
-        print( 'PDG_DIR: {}'.format(pdg_dir) )
+        debugLog( 'PDG_DIR: {}'.format(pdg_dir) )
 
         if pdg_dir is not None:
             path = path.replace( '__PDG_DIR__', pdg_dir )
-            print( 'result path: {}'.format( path ) )
+            debugLog( 'result path: {}'.format( path ) )
         else:
             print('WARNING: No PDG_DIR found')
     return pjoin( os.path.normpath( path ) )

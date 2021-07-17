@@ -24,24 +24,16 @@ import traceback
 import firehawk_plugin_loader
 create_asset_module = firehawk_plugin_loader.module_package('create_asset').create_asset
 
-debug_default = int( os.getenv('DEBUG_PDG', 0) )
-
-import firehawk_plugin_loader
+debug_default = firehawk_plugin_loader.resolve_debug_default()
 
 from os.path import sep, join
 def pjoin(*args, **kwargs):
     return join(*args, **kwargs).replace(sep, '/') # for windows compatibility.
 
-
-# firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=debug_default)
-
-# firehawk_logger.timed_info(label='create_asset plugin loaded')
-# firehawk_logger.debug('test debug logger')
-
 class asset():
     def __init__(   self, 
                     debug=debug_default,
-                    logger_object=firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=debug_default), 
+                    logger_object=firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(), 
                     start_time=None
                 ):
         self.debug = debug

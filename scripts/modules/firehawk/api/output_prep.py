@@ -1,11 +1,9 @@
 import os
 
 import firehawk_plugin_loader
-firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=10)
+firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger()
 
 firehawk_logger.timed_info(label='output_prep plugin loaded')
-
-debug_default = int(( os.getenv('DEBUG_PDG', 'false').lower() in ('true', 'yes', '1') )) # resolve env var as int
 
 def parm_format_menu_list():
     result = [  'bgeo.sc', "Bgeo (Blosc)", # default shoudl be item zero.  string refs to defaults can cause errors due to a bug.
@@ -87,7 +85,7 @@ def output_nodes_kv(): # to a avoid hou calls in python generate blocks, we cons
 
 def update_workitems(pdg_node, item_holder, upstream_items, generation_type, eval_output_expr_once=True):
     # update_workitems is used to attach submission data required for auto versioning, asset creation, and scheduler customisation.
-    print('\nupdate_workitems')
+    firehawk_logger.info('\nupdate_workitems')
 
     # pdg_node         -   A reference to the current pdg.Node instance
     # item_holder      -   A pdg.WorkItemHolder for constructing and adding work items
@@ -183,4 +181,4 @@ def update_workitems(pdg_node, item_holder, upstream_items, generation_type, eva
         prepare_output_type(work_item, output_topnode_path, output_topnode_type_name, output_format)
         firehawk_logger.timed_info( label='update_workitems: end item: {}'.format( item ) )
 
-    print('update_workitems done.\n\n')
+    firehawk_logger.info('update_workitems done.\n\n')

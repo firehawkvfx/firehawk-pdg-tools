@@ -37,7 +37,12 @@ if hou.isUIAvailable():
 
 from shutil import copyfile
 
-print("Using firehawk_submit: {}".format(__file__))
+import firehawk_plugin_loader
+debug_default = firehawk_plugin_loader.resolve_debug_default()
+firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=debug_default)
+
+if debug_default: firehawk_logger.info("Using firehawk_submit: {}".format(__file__))
+
 import firehawk_asset_handler
 reload(firehawk_asset_handler)
 import firehawk_read
@@ -53,18 +58,14 @@ update_method = 'user_data' # options: [ 'parms', 'user_data']. The method to st
 
 #####
 
-import firehawk_plugin_loader
 import firehawk.plugins
 import firehawk.api
 plugin_modules, api_modules=firehawk_plugin_loader.load_plugins() # load modules in the firehawk.api namespace
-firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=10)
 create_asset = firehawk_plugin_loader.module_package('create_asset').create_asset
 
 # It's possible to customize work item attributes that will be attached to a submission object ordered dict.
 submission_attributes = firehawk_plugin_loader.module_package('submission_attributes').submission_attributes.get_submission_attributes()
 timestamp_submit = firehawk_plugin_loader.module_package('timestamp_submit').timestamp_submit
-
-debug_default = int( os.getenv('DEBUG_PDG', 0) )
 
 class submit():
     def __init__(self, node=None, debug=debug_default, logger_object=None):
@@ -110,71 +111,41 @@ class submit():
         self.added_dependencies = []
 
         self.parmprefix = 'submit'
-        self._verbose = True # this should inherit a var / parm from a scheduler/ default scheduler
-        if self._verbose:
-            self.debug = 10
+        # self._verbose = True # this should inherit a var / parm from a scheduler/ default scheduler
+        # if self._verbose:
+        #     self.debug = 10
         # firehawk_logger.initLogger(logger, logging.ERROR)
         firehawk_logger.initLogger()
         self.spacer = '' # Allows offsetting of text for readbility in blocks
 
-    # def initLogger(self, logger, log_level):
-    #     """
-    #     Initialize the logger to write out to stdout
-    #     with minimum log level.
-    #     """
-    #     logger.setLevel(log_level)
-    #     handler = logging.StreamHandler(sys.stdout)
-    #     handler.setLevel(log_level)
-    #     logger.addHandler(handler)
-
-    def _verboseLog(self, args): # This is taken from scheduler.py
-        if self._verbose:
-            print('{}: {}: {}{}'.format( time.strftime('%H:%M:%S', time.localtime()), self.parmprefix, self.spacer, args))
-            # print(*args)
-            sys.stdout.flush()
-
-    # def _verboseLog(self, *args):
+    # def _verboseLog(self, args): # This is taken from scheduler.py
     #     if self._verbose:
-    #         print('{}: {}: '.format(
-    #             time.strftime('%H:%M:%S', time.localtime()),
-    #             self.parmprefix), end='')
-    #         print(*args)
+    #         print('{}: {}: {}{}'.format( time.strftime('%H:%M:%S', time.localtime()), self.parmprefix, self.spacer, args))
     #         sys.stdout.flush()
 
-
     def timeLog(self, start_time=None, label=''): # provides time passed since start time and time since last running of this method.
-        if start_time is not None:
-            self.start_time = start_time
-        else:
-            start_time = self.start_time
-        if self.last_time is None:
-            self.last_time = start_time
+        firehawk_logger.timed_info(start_time=start_time, label=label)
+
+        # if start_time is not None:
+        #     self.start_time = start_time
+        # else:
+        #     start_time = self.start_time
+        # if self.last_time is None:
+        #     self.last_time = start_time
         
-        message = "--- {} seconds --- Passed during Pre Submit --- {} seconds --- {}".format( '%.4f' % (time.time() - start_time),  '%.4f' % (time.time() - self.last_time), label )
-        self._verboseLog( message )
+        # message = "--- {} seconds --- Passed during Pre Submit --- {} seconds --- {}".format( '%.4f' % (time.time() - start_time),  '%.4f' % (time.time() - self.last_time), label )
+        # self._verboseLog( message )
         
-        self.last_time = time.time()
+        # self.last_time = time.time()
 
     def debugLog(self, message):
-        if self.debug>=10: self._verboseLog( message )
-        # if self.logger_object and hasattr( self.logger_object, 'debug' ):
-        #     self.logger_object.debug( message )
-        # else:
-        #     if self.debug>=10: print( message )
+        firehawk_logger.debug( message )
 
     def infoLog(self, message):
-        if self.debug>=5: self._verboseLog( message )
-        # if self.logger_object and hasattr( self.logger_object, 'info' ):
-        #     self.logger_object.info( message )
-        # else:
-        #     if self.debug>=5: print( message )
+        firehawk_logger.info( message )
 
     def warningLog(self, message):
-        self._verboseLog( message )
-        # if self.logger_object and hasattr( self.logger_object, 'warning' ):
-        #     self.logger_object.warning( message )
-        # else:
-        #     print( message )
+        firehawk_logger.warning( message )
 
     def assign_preflight(self):
         self.preflight_node = self.node
@@ -487,7 +458,7 @@ class submit():
     def onPreSubmitItem(self, work_item, job_env, item_command, logger_object=None):
         try:
             # this can be used in place of the on presubmit item code to insert functionality during onscheduled callback.
-            print('onpresubmit.')
+            self.debugLog('onPreSubmitItem():')
             
             # print('job_env:')
             # print( json.dumps( job_env, indent=4, sort_keys=True) )
@@ -541,9 +512,6 @@ class submit():
                 self.warningLog( "ERROR: Couldn\'t evaluate top net for work item." )
                 return None
 
-            # preflight_parm = self.top_net.parm('preflight_node')
-
-            print('...Checking if hip file must be replaced for submission')
             self.debugLog( '...Checking if hip file must be replaced for submission' )
             if rop_node:
                 # preflight_top = self.top_net.node(self.top_net.parm('preflight_node').eval())

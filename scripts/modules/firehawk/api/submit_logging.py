@@ -1,7 +1,14 @@
 import os
 import time
 
-debug_default = int( os.getenv('DEBUG_PDG', 0) )
+def resolve_debug_default():
+    if os.getenv('FH_VAR_DEBUG_PDG', '0') in tuple( [str(x) for x in range(11)] ):
+        debug_default = int( os.getenv('FH_VAR_DEBUG_PDG', '0') ) # if numeric, then use number up to 10.
+    else:
+        debug_default = int( (os.getenv('FH_VAR_DEBUG_PDG', 'false').lower() in ('true', 'yes')) ) # resolve env var as int
+    return debug_default
+
+debug_default = resolve_debug_default()
 
 class FirehawkLogger():
     def __init__(self, debug=debug_default, logger_object=None, start_time=None):

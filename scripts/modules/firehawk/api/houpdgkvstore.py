@@ -1,6 +1,7 @@
 import pdg, hou, firehawk_read
 import firehawk_plugin_loader
 pdgkvstore = firehawk_plugin_loader.module_package('pdgkvstore').pdgkvstore
+firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger()
 
 # This retrieves the kvstore for a given work item by reading parameters evaluated for that work item (like the version).  It is seperate to pdgkvstore because it requires hou, which should be isolated from pdg where possible.
 
@@ -12,15 +13,15 @@ def getPdgKvStore(work_item): # Attempt to get previous job id data for a work i
 
     kwargs = {}
     for key in required_components:
-        print( 'Retrieve parm/attrib: {} for work_item: {}'.format( key, work_item ))
+        firehawk_logger.debug( 'Retrieve parm/attrib: {} for work_item: {}'.format( key, work_item ))
         value = firehawk_read.getLiveParmOrAttribValue(work_item, key, type='string')
         if value is None:
             return None
         kv = { key: value }
-        print( 'update kv: {}'.format( kv ) )
+        firehawk_logger.debug( 'update kv: {}'.format( kv ) )
         kwargs.update( kv )
 
-    print('kwargs: {}'.format( kwargs ))
+    firehawk_logger.debug('kwargs: {}'.format( kwargs ))
 
     # Get the version for the work item by evaluating the version prameter on the node.
 
@@ -28,7 +29,7 @@ def getPdgKvStore(work_item): # Attempt to get previous job id data for a work i
         return None
 
     version_db_hou_node_path = firehawk_read.get_version_db_hou_node_path(work_item=work_item)
-    print( "version_db_hou_node_path: {}".format( version_db_hou_node_path ) )
+    firehawk_logger.debug( "version_db_hou_node_path: {}".format( version_db_hou_node_path ) )
     version_db_hou_node = hou.node( version_db_hou_node_path )
 
     json_object = None
@@ -39,7 +40,7 @@ def getPdgKvStore(work_item): # Attempt to get previous job id data for a work i
         kwargs['version'] = version_str
 
         key = '{}/{}/{}/{}/{}/{}/{}'.format( kwargs['job'], kwargs['seq'], kwargs['shot'], kwargs['element'], kwargs['variant'], kwargs['version'], subindex )
-        print('work_item_db_get key: {}'.format( key ) )
+        firehawk_logger.debug('work_item_db_get key: {}'.format( key ) )
         json_object = pdgkvstore.work_item_db_get(key)
 
     return json_object # if an attribute couldn't be aquired, will return none.  if kvstore retrieval file didn't exist or failed, will return empty dict.

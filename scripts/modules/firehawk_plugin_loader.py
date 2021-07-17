@@ -6,7 +6,15 @@ import sys
 import firehawk.plugins
 import firehawk.api
 
-debug_default = int(( os.getenv('DEBUG_PDG', 'false').lower() in ('true', 'yes', '1') )) # resolve env var as int
+def resolve_debug_default():
+    if os.getenv('FH_VAR_DEBUG_PDG', '0') in tuple( [str(x) for x in range(12)] ):
+        debug_default = int( os.getenv('FH_VAR_DEBUG_PDG', '0') ) # if numeric, then use number up to 10.
+    else:
+        debug_default = int( (os.getenv('FH_VAR_DEBUG_PDG', 'false').lower() in ('true', 'yes')) ) # resolve env var as int
+    return debug_default
+
+debug_default = resolve_debug_default()
+
 skip_plugins = int(( os.getenv('FH_SKIP_PLUGINS', 'false').lower() in ('true', 'yes', '1') )) # if FH_SKIP_PLUGINS is TRUE, only the api base will be used.
 
 enforce_only=None

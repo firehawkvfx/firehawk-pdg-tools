@@ -4,13 +4,10 @@
 import os, pdg, hou
 import firehawk_submit as firehawk_submit
 import firehawk_read
+
 import firehawk_plugin_loader
-
-debug = 10
-
-firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=10)
-
-
+debug_default = firehawk_plugin_loader.resolve_debug_default()
+firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=debug_default)
 
 def simple_handler(local_path, raw_file, work_item):
     firehawk_logger.debug(local_path)
@@ -43,7 +40,7 @@ def custom_handler(local_path, raw_file, work_item):
 
                 # Node: /obj/sop_geo_process/topnet1/outputprep2/pythonprocessor1 parm: set_output with tags: {'format': u'bgeo.sc', 'res': u'1920_1080_bgeo.sc', 'asset_type': u'geocache', 'job': u'stereo', 'volatile': u'off', 'create_asset': False, 'animating_frames': u'$F4', 'use_inputs_as': 'channels'}
                 firehawk_logger.timed_debug('get output')
-                get_output = firehawk_read.get_output(hou_node, work_item=work_item, set_output=set_output, debug=10) # get_output is the current expression on the target.  if they dont match, the work item must be queued.
+                get_output = firehawk_read.get_output(hou_node, work_item=work_item, set_output=set_output, debug=debug_default) # get_output is the current expression on the target.  if they dont match, the work item must be queued.
                 firehawk_logger.timed_debug('get output: {}'.format(get_output) )
                 # set_index_key = None
                 firehawk_logger.timed_debug('read index key')
@@ -51,7 +48,7 @@ def custom_handler(local_path, raw_file, work_item):
                 firehawk_logger.timed_debug('get index_key_expr')
                 # set_index_key = firehawk_read.getLiveParmOrAttribValue(work_item, 'index_key', debug=debug)
                 # index_key_expr = None
-                index_key_expr = firehawk_read.get_output_index_key_expr(hou_node, debug=debug)
+                index_key_expr = firehawk_read.get_output_index_key_expr(hou_node, debug=debug_default)
                 firehawk_logger.timed_debug('done aquisition')
             
             if (set_output is not None) and (get_output is None):

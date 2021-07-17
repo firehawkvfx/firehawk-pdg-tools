@@ -150,7 +150,7 @@ def getAssetPath(**tags): # This function should return a path and filename for 
 
 
 def createAssetPath(**tags): # This method should create an asset if version_str (eg 'v005') is provided, or increment an asset if version_str is 'None'.  It can be patched with whatever method you wish, so long as it returns the same output.  It must return dir_name file_name and version (as an int)
-    print( 'api: create_asset tags: {}'.format(tags) )
+    firehawk_logger.debug( 'api: create_asset tags: {}'.format(tags) )
     requirements = ['job', 'seq', 'shot', 'element', 'variant', 'asset_type', 'volatile']
     for key in requirements:
         if key not in tags:

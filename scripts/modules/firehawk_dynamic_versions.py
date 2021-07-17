@@ -19,7 +19,9 @@ if hou.isUIAvailable():
 import firehawk_read
 reload(firehawk_read)
 
-debug_default = int( os.getenv('DEBUG_PDG', 10) )
+import firehawk_plugin_loader
+debug_default = firehawk_plugin_loader.resolve_debug_default()
+
 delimeter = '.' # the delimeter used to seperate keys for versioning
 
 class versions():
@@ -833,19 +835,19 @@ return value
     def pull_all_versions_to_all_multiparms( self, check_hip_matches_submit=False, force_pull=False, exec_in_main_thread=False, work_item=None, use_json_file=False, verbose=True, debug=False ):
         # intended for use on hip load of work items, and after graph cooks finish
 
-        print('Pull versions: pull_all_versions_to_all_multiparms()')
+        self.debugLog('Pull versions: pull_all_versions_to_all_multiparms()')
         import pdg
 
         this_hip_file = hou.hipFile.name()
         last_submitted_hip_file = hou.node('/').userData('self.debug')
 
         if check_hip_matches_submit and last_submitted_hip_file is not None and this_hip_file != last_submitted_hip_file: # ensure we are using a hip file intended for the farm.
-            print( 'Check matching filename for last submit.' )
-            print( 'last_submitted_hip_file: {}'.format(last_submitted_hip_file) )
-            print( 'this_hip_file: {}'.format(this_hip_file) )
+            self.debugLog( 'Check matching filename for last submit.' )
+            self.debugLog( 'last_submitted_hip_file: {}'.format(last_submitted_hip_file) )
+            self.debugLog( 'this_hip_file: {}'.format(this_hip_file) )
             if self.debug: # this is used to debug standard file loading for a user
-                print( 'Pull versions: Ignoring pull versions since hip name is not for farm use: {}'.format( hou.hipFile.name() ) )
-                print('return')
+                self.debugLog( 'Pull versions: Ignoring pull versions since hip name is not for farm use: {}'.format( hou.hipFile.name() ) )
+                self.debugLog('return')
                 return None
 
         json_object = None
@@ -863,20 +865,20 @@ return value
         # loading hip file without a work item - use json file
         # farm loading hip file with work item
         
-        print('work_item: {}'.format(work_item))
+        self.debugLog('work_item: {}'.format(work_item))
         
         if work_item is not None and work_item.pyObjectAttribValue('versiondb') is not None and use_json_file == False: # for a cook process, we aquire the json data from the work item to avoid file lock issues / race conditions.
-            print( 'Pull versions: get keys from json object attribute: versiondb' )
+            self.debugLog( 'Pull versions: get keys from json object attribute: versiondb' )
             json_object = work_item.pyObjectAttribValue('versiondb')
 
         if json_object is None and use_json_file: # the json blob can be loaded from a file, this should only be done for a UI, not for multiple running farm tasks, since we dont know if the file is still being written to.
-            print( 'Pull versions: get keys from json file:' )
+            self.debugLog( 'Pull versions: get keys from json file:' )
             file_path = self.get_sidecar_json_file_path()
-            print( 'file_path: {}'.format(file_path) )
+            self.debugLog( 'file_path: {}'.format(file_path) )
             json_object = self.get_sidecar_json_object(file_path=file_path)
         
         if json_object is None or len(json_object)==0 or not isinstance(json_object, dict):
-            print( 'Pull versions: no json object exists. Skipping pull versions to parms.' )
+            self.debugLog( 'Pull versions: no json object exists. Skipping pull versions to parms.' )
             return None
 
         # get MD5 checksum on json_object to record what was set
@@ -887,25 +889,25 @@ return value
 
         # Finally compare original MD5 with freshly calculated
         if force_pull:
-            print("\n### MD5 verification ignored: Force Pulling versions... MATCH: {} LAST MD5: {} MD5: {}\n".format( match, last_loaded_md5, new_md5))
+            self.debugLog("\n### MD5 verification ignored: Force Pulling versions... MATCH: {} LAST MD5: {} MD5: {}\n".format( match, last_loaded_md5, new_md5))
         else:
             if match:
-                print("\n### MD5 verified to be previously loaded. Skipping pull versions. MATCH: {} LAST MD5: {} MD5: {}\n".format( match, last_loaded_md5, new_md5))
+                self.debugLog("\n### MD5 verified to be previously loaded. Skipping pull versions. MATCH: {} LAST MD5: {} MD5: {}\n".format( match, last_loaded_md5, new_md5))
                 return None
             else:
-                print("\n### MD5 verification no match: Pulling versions... MATCH: {} LAST MD5: {} MD5: {}\n".format( match, last_loaded_md5, new_md5))
+                self.debugLog("\n### MD5 verification no match: Pulling versions... MATCH: {} LAST MD5: {} MD5: {}\n".format( match, last_loaded_md5, new_md5))
         
-        print( json.dumps( json_object, indent=4, sort_keys=True) )
+        self.debugLog( json.dumps( json_object, indent=4, sort_keys=True) )
 
         version_prefix='version_'
 
         if exec_in_main_thread:
-            print( '...Exec inmain thread' )
+            self.debugLog( '...Exec inmain thread' )
         else:
-            print( '...Already in main thread')
+            self.debugLog( '...Already in main thread')
 
         for version_db_hou_node_path in json_object:
-            print( 'version_db_hou_node_path: {} '.format( version_db_hou_node_path ) )
+            self.debugLog( 'version_db_hou_node_path: {} '.format( version_db_hou_node_path ) )
 
             hou_node_path = self.get_hou_node_path_from_version_db_hou_node_path( version_db_hou_node_path ) # hou node can be different to the version db node.  this could be removed in future once pdg pilot submission works, this was a placeholder for stability.  to diagnose hangs due to parm.set, we needed to isolate nodes with user data, and nodes with the multiparm
             hou_node = hou.node(hou_node_path)
@@ -928,7 +930,7 @@ return value
                     self.warningLog( 'ERROR: couldn\'t retrieve a version from key: {}'.format(key) )
                     return None
 
-                print( 'pull: update user data key: {} value: {}'.format(key, value) )
+                self.debugLog( 'pull: update user data key: {} value: {}'.format(key, value) )
                 if exec_in_main_thread:
                     hdefereval.executeInMainThreadWithResult(hou.node(version_db_hou_node_path).setUserData, key, value)
                 else:
@@ -936,7 +938,7 @@ return value
 
             user_data_dict = hou.node(version_db_hou_node_path).userDataDict()
             
-            print( 'pull: get versions' )
+            self.debugLog( 'pull: get versions' )
             version_db_index_keys = [ x[len(version_prefix): ] for x in user_data_dict if x.startswith(version_prefix) ]
 
             for index_key in version_db_index_keys: # use the keys to update the multiparm iteratively for versions.
@@ -945,7 +947,7 @@ return value
 
             parm_prefix = 'parm_'
             parm_names = [ x[len(parm_prefix):] for x in user_data_dict if x.startswith(parm_prefix) ]
-            print( 'pull: get parms ' + str(parm_names) )
+            self.debugLog( 'pull: get parms ' + str(parm_names) )
             # hou_node_path = self.get_hou_node_path_from_version_db_hou_node_path( version_db_hou_node_path )
 
             for parm_name in parm_names: # use the keys to update the multiparm iteratively for parm names
@@ -956,13 +958,13 @@ return value
                     value = firehawk_read.resolve_pdg_vars(value, node_path=version_db_hou_node_path) # if no __ tokens exist in the string, this function will not alter the output
 
                     if exec_in_main_thread:
-                        print( 'exec_in_main_thread... set parm {}: {}'.format( hou_parm.name(), value ) ) 
+                        self.debugLog( 'exec_in_main_thread... set parm {}: {}'.format( hou_parm.name(), value ) ) 
                         hdefereval.executeInMainThreadWithResult( hou_parm.set, value ) # this can cause crashing if run by pdg scehduler thread at the time of writing
                     else:
-                        print( 'set parm {}: {}'.format( hou_parm.name(), value ) )
+                        self.debugLog( 'set parm {}: {}'.format( hou_parm.name(), value ) )
                         hou_parm.set(value)
                 else:
-                    print( '...Skipping invalid parm: ' + str( parm_name ) )
+                    self.debugLog( '...Skipping invalid parm: ' + str( parm_name ) )
 
             def update_cache(dependent):
                 dependent.parm('resetcookpass').pressButton()
@@ -970,17 +972,17 @@ return value
             for dependent in hou_node.dependents(): # reset readers
                 if dependent.type().nameComponents()[-2] == 'read_wedges':
                     if exec_in_main_thread:
-                        print( 'exec_in_main_thread... Reset read_wedges: {}'.format( dependent.path() ))
+                        self.debugLog( 'exec_in_main_thread... Reset read_wedges: {}'.format( dependent.path() ))
                         hdefereval.executeInMainThreadWithResult( update_cache, dependent )
                     else:
-                        print( 'Reset read_wedges: {}'.format( dependent.path() ))
+                        self.debugLog( 'Reset read_wedges: {}'.format( dependent.path() ))
                         update_cache(dependent)
 
         if exec_in_main_thread:
             hdefereval.executeInMainThreadWithResult(hou.node('/').setUserData, 'last_loaded_md5', new_md5)
         else:
             hou.node('/').setUserData( 'last_loaded_md5', new_md5 )
-        print('\n### MD5 updated on cached user data at "/"  MD5: {}\n'.format(new_md5))
+        self.debugLog('\n### MD5 updated on cached user data at "/"  MD5: {}\n'.format(new_md5))
 
 
     def update_index(self, node, key_prefix=None, key_name=None, index_int=None, set_value=None):
