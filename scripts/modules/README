@@ -49,7 +49,7 @@ In firehawk submit we use:
 self.persistent_override( hou_node_path=hou_node_path, parm_name='version_db_index_key', value=index_key, existence_check=False )
 but this should probably become a seperate function in firehawk_dynamic verisons...
 
-This expression is unique for each wedge.  It could also be avoided by getting the expressions the resolve the result (seq, shot, element, variant, and version) to look at an environment variable.  If not using PDG, I'd reccomend this expression use environment variables.
+This expression is unique for each wedge.  It could also be avoided by getting the expressions the resolve the result (seq, shot, element, variant, and version) to look at an environment variable.  If not using PDG, I'd recommend this expression use environment variables.
 '$WEDGE_SEQ.$WEDGE_SHOT.$WEDGE_ELEMENT.$WEDGE_VARIANT'
 This would be instead of the pdg equivalent:
 '`@seq`.`@shot`.`@element`.`@variant`'

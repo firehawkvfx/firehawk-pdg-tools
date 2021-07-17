@@ -105,14 +105,6 @@ class submit():
         self.hip_basename = re.sub('\.hip$', '', hou.hipFile.basename())
         self.hip_path_submission = None
 
-        self.varname_show = os.environ.get('VARNAME_SHOW', 'SHOW')
-        self.varname_seq = os.environ.get('VARNAME_SEQ', 'SEQ')
-        self.varname_shot = os.environ.get('VARNAME_SHOT', 'SHOT')
-        self.varname_shotpath = os.environ.get('VARNAME_SHOTPATH', 'SHOTPATH')
-        self.varname_scenename = os.environ.get('VARNAME_SCENENAME', 'SCENENAME')
-
-        # self.parm_template_version = '0.1.8'
-
         self.source_top_nodes = []
         self.added_workitems = []
         self.added_dependencies = []
@@ -301,7 +293,7 @@ class submit():
 
             # construct asset for timestamped hip
             asset_creator = firehawk_asset_handler.asset( debug=self.debug, logger_object=None, start_time=time.time() ) # An instance of the asset handler with passed through logging. TODO: starndardise the root time / logging, shouldn't need to pass it through.
-            tags = create_asset.get_tags_for_submission_hip(hip_name, variant=timestamp_str) # tags are passed to the asset creator to construct a path
+            tags = create_asset.get_tags_for_submission_hip(hip_name, variant=timestamp_str, parent_top_net=parent_top_net) # tags are passed to the asset creator to construct a path
             # create asset for hip file
             hip_name, version = asset_creator.custom_create_new_asset_version( tags, show_times=True, register_hip=False )
             self.infoLog( "Created asset_path: {}".format( hip_name ) )
@@ -489,27 +481,7 @@ class submit():
             return item_command
 
     def get_parent_top_net(self, parent): # first parent, will recurse from here until top net is found
-        
-        topnet_type_names = ['topnetmgr', 'topnet']
-
-        def get_type_name(node):
-            type_name = None
-            if hasattr(node, 'type'):
-                type_name = node.type().name().split('::')[0]
-            return type_name
-
-        ### Get the top net for the current work item to aquire data - for preflight and post.
-        parent_type_name = get_type_name(parent)
-        top_net = None
-        if parent_type_name in topnet_type_names:
-            top_net = parent
-        while parent and ( get_type_name(parent) not in topnet_type_names ) :
-            self.debugLog( 'get parent for: {}'.format( parent.path() ) )
-            parent = parent.parent()
-            parent_type_name = get_type_name(parent)
-            if parent_type_name in topnet_type_names:
-                top_net = parent
-
+        top_net = firehawk_read.get_parent_top_net(parent)
         return top_net
 
     def onPreSubmitItem(self, work_item, job_env, item_command, logger_object=None):

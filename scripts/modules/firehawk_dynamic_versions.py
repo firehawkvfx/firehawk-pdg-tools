@@ -37,7 +37,7 @@ class versions():
 
         self.logger_object = logger_object
 
-        self.parm_template_version = '0.2.0'
+        self.parm_template_version = '0.2.1'
         self.output_types = { # Defines valid node types that will inherit the version_db multiparm tab.
             'alembic': {
                 'output': 'sop_path', 'extension': 'abc', 'type_path': 'cache', 'static_expression': True
@@ -241,6 +241,53 @@ class versions():
 
         return True
 
+    def init_firehawk_topnet_parms(self, topnet_path):
+        node = hou.node(topnet_path)
+        parm_group = node.parmTemplateGroup()
+        found_versioning_folder = parm_group.findFolder( "Firehawk" ) # find folder by label
+        utilised_version = None
+        if found_versioning_folder:
+            utilised_version = found_versioning_folder.tags()['version_db']
+        if utilised_version and ( utilised_version == self.parm_template_version ):
+            self.debugLog( "Topnet Parm Template already matches current v{}. Not updating parameters".format( utilised_version ) )
+            return
+
+        try:
+            parm_folder = hou.FolderParmTemplate("firehawk", "Firehawk")
+            parm_folder = self.append_version_db_tags(parm_folder)
+
+            job_default=""
+            seq_default=""
+            shot_default=""
+            # If JOB SEQ and SHOT are available as env vars, they can be used as default values.
+            if len( os.getenv('JOB', '') ) > 0 and len( os.getenv('SEQ', '') ) > 0 and len( os.getenv('JOB', '') ) > 0:
+                job_default="$JOB"
+                seq_default="$SEQ"
+                shot_default="$SHOT"
+
+            parm_template = hou.StringParmTemplate("job", "Job", 1, [job_default])
+            parm_template.setJoinWithNext(True)
+            parm_folder.addParmTemplate(parm_template)
+
+            parm_template = hou.StringParmTemplate("seq", "Seq", 1, [seq_default])
+            parm_template.setJoinWithNext(True)
+            parm_folder.addParmTemplate(parm_template)
+            
+            parm_template = hou.StringParmTemplate("shot", "Shot", 1, [shot_default])
+            parm_template.setJoinWithNext(False)
+            parm_folder.addParmTemplate(parm_template)
+
+            self.debugLog( 'Append or replace folder. node: {} folder: {}'.format( node, parm_folder ) )
+            parm_group = self.appendOrReplaceFolder(node, parm_folder)
+            self.debugLog( 'Appended folder' )
+            passed = node.setParmTemplateGroup(parm_group)
+            self.debugLog( 'Set PTG' )
+        except ( Exception, hou.Error ), e :
+            import traceback
+            print( 'Exception: {}'.format(e) )
+            traceback.print_exc(e)
+            raise e
+
     def update_rop_output_paths_for_selected_nodes(self, kwargs={}, version_db=False):
         self.debugLog( "Update Rop Output Paths for Selected SOP/TOP Nodes." )
         self.selected_nodes = kwargs['items']
@@ -264,19 +311,6 @@ class versions():
 
             bake_names = True
             self.debugLog( "evaluate env vars" )
-            if bake_names:
-                node_name = node.name()
-
-            else:
-                node_name = "${OS}"
-
-                show_var = "${SHOW}"
-                seq_var = "${SEQ}"
-                shot_var = "${SHOT}"
-
-                shot_var = "${SHOW}.${SEQ}.${SHOT}"
-                shotpath_var = "${SHOTPATH}"
-                scene_name = "${SCENENAME}"
 
             file_template_default = ""
 
@@ -362,67 +396,11 @@ return version
                 hou_keyframe.setExpression(
                     py_expr, hou.exprLanguage.Python)
                 hou_parm.setKeyframe(hou_keyframe)
-
-                expr = \
-                    """
-# When multiple sites (cloud) are mounted over vpn, this allows tops to recognise if data exists in a particulr location.
-# It means data can be submitted for generation or deleted from multiple locaitons,
-# However generation should normally be executed by render nodes that exist at the same site through via a scheduler.
-import hou
-node = hou.pwd()
-lookup = {'submission_location':'$PROD_ROOT', 'cloud':'$PROD_CLOUD_ROOT', 'onsite':'$PROD_ONSITE_ROOT'}
-location = node.parm('location').evalAsString()
-root = lookup[location]
-
-template = root+'/$SHOW/$SEQ/$SHOT'
-return template
-"""
-
-                # hou_parm = node.parm("shot_path_template")
-                # hou_parm.lock(False)
-                # hou_parm.setAutoscope(False)
-                # hou_keyframe = hou.StringKeyframe()
-                # hou_keyframe.setTime(0)
-                # hou_keyframe.setExpression(
-                #     expr, hou.exprLanguage.Python)
-                # hou_parm.setKeyframe(hou_keyframe)
-
-                parms_added = True
-            # except:
-            #     parms_added = False
-            #     traceback.print_exc()
-            #     sys.stderr.flush()
             except ( Exception, hou.Error ), e :
                 import traceback
-                parms_added = False
                 print( 'Exception: {}'.format(e) )
                 traceback.print_exc(e)
                 raise e
-            # if parms_added:
-                # if static_expression:
-                #     hou_parm = node.parm("frame")
-                #     hou_parm.lock(False)
-                #     hou_parm.setAutoscope(False)
-                #     hou_keyframe = hou.StringKeyframe()
-                #     hou_keyframe.setTime(0)
-
-                #     if 'overrides' in lookup and 'frame' in lookup['overrides']:
-                #         self.debugLog( 'has override for static_expression' )
-                #         hou_keyframe.setExpression(
-                #             lookup['overrides']['frame'], hou.exprLanguage.Python)
-                #     else:
-                #         hou_keyframe.setExpression("import hou"+'\n'+"node = hou.pwd()"+'\n'+"step = node.parm('f3').eval()"+'\n'+"if node.parm('trange').evalAsString() == 'off':" +
-                #                                 '\n'+"    value = 'static'"+'\n'+"elif step != 1:"+'\n'+"    value = '$FF'"+'\n'+"else:"+'\n'+"    value = '$F4'"+'\n'+"return value", hou.exprLanguage.Python)
-                #     # if node.parm('framegeneration').evalAsString() == '0':
-                #     hou_parm.setKeyframe(hou_keyframe)
-
-                # element_name_template = node.parm(
-                #     "element_name_template").evalAsString()
-
-                # node.parm('element_name').set(element_name_template)
-
-                # bake_template = False
-                # replace_env_vars_for_tops = True
 
     def ensure_version_db_node_exists(self, hou_node_path): # ensures the version db node exists for the  hou  node path.  It may be the same node itself, but can be a null.
         hou_node = hou.node( hou_node_path )

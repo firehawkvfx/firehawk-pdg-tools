@@ -61,6 +61,29 @@ def get_hou_node_path(work_item, debug=debug):
     debugLog('done: {}'.format(hou_node_path), debug=debug)
     return hou_node_path
 
+def get_type_name(node):
+    type_name = None
+    if hasattr(node, 'type'):
+        type_name = node.type().name().split('::')[0]
+    return type_name
+
+def get_parent_top_net(parent): # first parent, will recurse from here until top net is found
+    topnet_type_names = ['topnetmgr', 'topnet']
+
+    ### Get the top net for the current work item to aquire data - for preflight and post.
+    parent_type_name = get_type_name(parent)
+    top_net = None
+    if parent_type_name in topnet_type_names:
+        top_net = parent
+    while parent and ( get_type_name(parent) not in topnet_type_names ) :
+        debugLog( 'get parent for: {}'.format( parent.path() ) )
+        parent = parent.parent()
+        parent_type_name = get_type_name(parent)
+        if parent_type_name in topnet_type_names:
+            top_net = parent
+
+    return top_net
+
 def get_version_str(version_int):
     version_str = 'v'+str( version_int ).zfill(3)
     return version_str

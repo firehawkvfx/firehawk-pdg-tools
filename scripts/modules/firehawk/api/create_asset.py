@@ -19,11 +19,23 @@ def add_dependency(path, ancestor_path): # this is an asset dependency db hook, 
 def rebuild_tags(tags): # A method that can be customised to rebuild / alter tags used for asset creation.  For example, and output type of 'rendering', may require an extension tag to be customised.  This method can be patched to do so.
     return tags
 
-def get_tags_for_submission_hip(hip_name, element='pdg_setup', variant=''):
+def get_tags_for_submission_hip(hip_name, element='pdg_setup', variant='', parent_top_net=None):
+    if parent_top_net is None:
+        raise Exception('ERROR: parent_top_net not provided: get_tags_for_submission_hip()')
+
+    job_value = parent_top_net.parm('job').evalAsString()
+    seq_value = parent_top_net.parm('seq').evalAsString()
+    shot_value = parent_top_net.parm('shot').evalAsString()
+
+    if False in [ len(x)>0 for x in [ job_value, seq_value, shot_value ] ]:
+        raise Exception('ERROR: job, seq, shot parm not set on topnet: get_tags_for_submission_hip()')
+        # msg += '\n\nEnsure the env vars JOB / SEQ / SHOT are defined before running houdini.\nThis allows the asset handler to save a root timestamped version of the hip file for the submission.'
+        # hou.ui.displayMessage(msg)
+
     tags = {
-        'job': os.getenv('JOB'),
-        'seq': os.getenv('SEQ'),
-        'shot': os.getenv('SHOT'),
+        'job': job_value,
+        'seq': seq_value,
+        'shot': shot_value,
         'element': element,
         'variant': variant,
         'asset_type': 'setup',

@@ -8,6 +8,12 @@ def pull_all_versions_to_all_multiparms(exec_in_main_thread=False, use_json_file
     firehawk_dynamic_versions.versions().pull_all_versions_to_all_multiparms( check_hip_matches_submit=False, exec_in_main_thread=exec_in_main_thread, use_json_file=True ) # Ensure any versions generated in the last submisison are in the current hip.
     print('...Versions finished sync before saving hip.')
 
+def init_firehawk_topnet_parms(parent):
+    import firehawk_dynamic_versions, firehawk_read
+
+    top_net_path = firehawk_read.get_parent_top_net(parent).path()
+    firehawk_dynamic_versions.versions().init_firehawk_topnet_parms( top_net_path )
+
 class Preflight(): # This class will be used for assigning and using preflight nodes and cooking the main graph.  reloads may not work on this SESI code.
     def __init__(self, node=None, debug=None, logger_object=None):
         self.node = node
@@ -34,20 +40,8 @@ class Preflight(): # This class will be used for assigning and using preflight n
             import firehawk_plugin_loader
             post_flight = firehawk_plugin_loader.module_package('post_flight').post_flight
 
-            # Ensure min requirements for submission are met.
-            required_env_vars = ['JOB', 'SEQ', 'SHOT']
-            msg = ''
-            met_requirements = True
-
-            for var in required_env_vars:
-                if len( os.getenv(var, '') ) == 0:
-                    met_requirements = False
-                    msg += '\nERROR: Missing env var in this houdini session: {}'.format( var )
-                    
-            if met_requirements == False:
-                msg += '\n\nEnsure the env vars JOB / SEQ / SHOT are defined before running houdini.\nThis allows the asset handler to save a root timestamped version of the hip file for the submission.'
-                hou.ui.displayMessage(msg)
-                return
+            # ensure firehawk parms exist on topnet
+            init_firehawk_topnet_parms(node.parent())
 
             self.submit = firehawk_submit.submit( node )
 
