@@ -6,9 +6,31 @@ Firehawk PDG tools is an implementation for PDG enabling common required abiliti
 
 # Installation
 
-- Ensure ~/houdini18.5/packages exists.  You may need to create the 'packages' folder if it doesn't already exist.
-- Place the entire firehawk-pdg-tools folder in ~/houdini18.5/packages.
-- Copy the firehawk-pdg-tools.json directly to ~/houdini18.5/packages.  json files in packages are read here and load specified package contents.
+- Ensure the "packages" folder exists in the user houdini folder.  The user houdini folder is different depending on your OS.  You may need to create the 'packages' folder if it doesn't already exist. eg:  
+```
+Linux:  
+~/houdini18.5/packages
+Mac OS:  
+~/Library/Preferences/houdini/18.5/packages
+Windows:  
+$HOME/Downloads/houdini/18.5/packages
+```
+
+- Place the entire firehawk-pdg-tools folder in the `packages` folder.  
+- Copy the firehawk-pdg-tools.json directly into the `packages` folder.  Json files in packages are read here and load specified package contents.  
+
+From the packages folder, the tree should look like this: 
+```
+packages % tree -L 1  
+.
+├── firehawk-pdg-tools
+└── firehawk-pdg-tools.json
+```
+
+- If you wish to show debugging information for submission, use this env var before you load houdini:
+```
+FH_VAR_DEBUG_PDG=10
+```
 
 # Features:
 
