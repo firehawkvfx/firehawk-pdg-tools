@@ -1,6 +1,6 @@
 # Firehawk PDG Tools
 
-For houdini 18.5.596 and higher.  This has been tested on Ubuntu 18.04, CentOS 7, MacOS 11.4, and Windows 10
+For Houdini 18.5.596 and higher.  This has been tested on Ubuntu 18.04, CentOS 7, MacOS 11.4, and Windows 10
 
 Firehawk PDG tools is an implementation for PDG enabling common required abilities for production.  It has been used and contributed to by Rising Sun Pictures and Stormborn Studios.
 
