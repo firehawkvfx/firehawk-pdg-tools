@@ -34,9 +34,10 @@ class Preflight(): # This class will be used for assigning and using preflight n
     def cook(self, use_preflight_node=False):
         import hou, pdg
         try:
+
+            exec_in_main_thread=True
             if not hou.isUIAvailable():
-                self.warningLog( 'ERROR hdefereval cannot be called without UI being available' )
-                return
+                exec_in_main_thread=False
 
             node = self.node
 
@@ -57,8 +58,11 @@ class Preflight(): # This class will be used for assigning and using preflight n
             firehawk_logger.info('...Save_hip_for_submission')
             hip_name, taskgraph_file = self.submit.save_hip_for_submission(set_user_data=True, preflight=False, exec_in_main_thread=False) # Snapshot a time stamped hip file for cooking runs.  Must be used for all running tasks, not the live hip file in the current session
 
-            from nodegraphtopui import cookNode
-            cookNode(node)
+            if hou.isUIAvailable():
+                from nodegraphtopui import cookNode
+                cookNode(node)
+            else:
+                node.executeGraph(block=True)
 
             # use a handler to save the graph on completion.
             if node is None: return
@@ -70,8 +74,8 @@ class Preflight(): # This class will be used for assigning and using preflight n
                 handler.removeFromAllEmitters()
                 firehawk_logger.info('...Running post_flight.graph_complete.')
                 post_flight.graph_complete( hip_name ) # you may wish to perform an operation on the hip asset after completion of the graph.
-                firehawk_logger.info('...Updating Parms/Versions in this Hip session.')
-                pull_all_versions_to_all_multiparms(exec_in_main_thread=True, use_json_file=True) # we update parms last, but since this is coming from a callback, we needs to use hou's ability to execute in the main thread.
+                firehawk_logger.info( '...Updating Parms/Versions in this Hip session. exec_in_main_thread: {}'.format( exec_in_main_thread ) )
+                pull_all_versions_to_all_multiparms(exec_in_main_thread=exec_in_main_thread, use_json_file=True) # we update parms last, but since this is coming from a callback, we needs to use hou's ability to execute in the main thread.
                 firehawk_logger.info('...Finished update_parms in event handler.')
 
             firehawk_logger.info('...AddEventHandler update_parms_partial')
