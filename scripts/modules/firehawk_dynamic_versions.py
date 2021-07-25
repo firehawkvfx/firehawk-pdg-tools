@@ -908,6 +908,11 @@ return value
 
         for version_db_hou_node_path in json_object:
             self.debugLog( 'version_db_hou_node_path: {} '.format( version_db_hou_node_path ) )
+            
+            version_db_hou_node = hou.node(version_db_hou_node_path)
+            if version_db_hou_node is None:
+                self.debugLog( 'pull: skipping non existant node' )
+                continue
 
             hou_node_path = self.get_hou_node_path_from_version_db_hou_node_path( version_db_hou_node_path ) # hou node can be different to the version db node.  this could be removed in future once pdg pilot submission works, this was a placeholder for stability.  to diagnose hangs due to parm.set, we needed to isolate nodes with user data, and nodes with the multiparm
             hou_node = hou.node(hou_node_path)
@@ -932,11 +937,11 @@ return value
 
                 self.debugLog( 'pull: update user data key: {} value: {}'.format(key, value) )
                 if exec_in_main_thread:
-                    hdefereval.executeInMainThreadWithResult(hou.node(version_db_hou_node_path).setUserData, key, value)
+                    hdefereval.executeInMainThreadWithResult(version_db_hou_node.setUserData, key, value)
                 else:
-                    hou.node(version_db_hou_node_path).setUserData( key, value )
+                    version_db_hou_node.setUserData( key, value )
 
-            user_data_dict = hou.node(version_db_hou_node_path).userDataDict()
+            user_data_dict = version_db_hou_node.userDataDict()
             
             self.debugLog( 'pull: get versions' )
             version_db_index_keys = [ x[len(version_prefix): ] for x in user_data_dict if x.startswith(version_prefix) ]
@@ -953,6 +958,9 @@ return value
             for parm_name in parm_names: # use the keys to update the multiparm iteratively for parm names
                 if hou_node is not None and hou_node.parm(parm_name) is not None:
                     hou_parm = hou_node.parm(parm_name)
+                    if hou_parm is None:
+                        self.debugLog( 'pull: skipping non existent parm.')
+                        continue
                     value = user_data_dict[ parm_prefix + parm_name ]
 
                     value = firehawk_read.resolve_pdg_vars(value, node_path=version_db_hou_node_path) # if no __ tokens exist in the string, this function will not alter the output
