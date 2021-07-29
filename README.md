@@ -45,5 +45,4 @@ FH_VAR_DEBUG_PDG=10
 
 - Open the firehawk.pdg.versioning.demo.hip file
 - Right click on /obj/sop_geo_process/topnet1/ropfetch_flipbook, and select 'Cook with Preflight'
-- Once it is cooked, if you select to cook again, nothing should occur since the outputs exist on disk.  You should also be able to see the versions of the assets populate on the output nodes.
 
