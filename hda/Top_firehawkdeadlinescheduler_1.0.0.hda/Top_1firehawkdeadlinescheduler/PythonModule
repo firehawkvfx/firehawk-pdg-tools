@@ -1,0 +1,13 @@
+def submitGraphAsJob(kwargs, node):
+    from pdg.scheduler import submitGraphAsJob
+    submitGraphAsJob(kwargs, node, 'Deadline')
+    
+def validateForceReloadPlugin(kwargs, node):
+    """
+    When PDGMQ Server As Task is False, also set
+    the Force Reload Plugin to False.
+    """
+    mq_server_task = node.parm('deadline_pdgmqastask').eval()
+    force_reload_plugin = node.parm('deadline_forcereloadplugin').eval()
+    if force_reload_plugin == 1 and mq_server_task == 0:
+        node.parm('deadline_forcereloadplugin').set(0)

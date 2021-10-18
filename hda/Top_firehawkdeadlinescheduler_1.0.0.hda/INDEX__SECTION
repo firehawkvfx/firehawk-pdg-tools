@@ -1,0 +1,15 @@
+Operator:     firehawkdeadlinescheduler
+Label:        Firehawk Deadline Scheduler
+Path:         oplib:/Top/firehawkdeadlinescheduler?Top/firehawkdeadlinescheduler
+Icon:         TOP_deadlinescheduler
+Table:        Top
+License:      
+Extra:        pdgtype='scheduler' subtype=firehawkdeadlinescheduler 
+User:         
+Inputs:       0 to 0
+Outputs:      0
+Subnet:       false
+Python:       false
+Empty:        false
+Modified:     Mon Oct 18 15:20:13 2021
+

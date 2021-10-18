@@ -22,6 +22,8 @@ def registerTypes(type_registry):
 
     firehawk_logger.debug("Registering firehawklocalscheduler for H18.5") 
     type_registry.registerScheduler(firehawklocal.FirehawkLocalScheduler, label="Firehawk Local Scheduler")
+    firehawk_logger.debug("Registering firehawkdeadlinescheduler for H18.5") 
+    type_registry.registerScheduler(firehawktbdeadline.FirehawkDeadlineScheduler, label="Firehawk Local Scheduler")
     firehawk_logger.debug("Done registering firehawk schedulers.")
     firehawk_logger.debug("Registering script viewer") 
     type_registry.addTag("file/firehawk/log")

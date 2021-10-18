@@ -1,0 +1,72 @@
+try:
+    old_ver = int(kwargs.get('old_version'))
+except:
+    old_ver = 0
+    
+def copyParameter(p_dst, p_src):
+    if len(p_src.keyframes()) > 0:
+        p_dst.setKeyframes(p_src.keyframes())
+    elif p_src.parmTemplate().dataType() == hou.parmData.String:
+        p_dst.set(p_src.unexpandedString())
+    else:
+        p_dst.set(p_src.eval())
+    
+def parameterRenamed(node, oldName, newName):
+    p_src = node.parm(oldName)
+    if p_src != None:
+        p_src = node.parm(oldName)
+        p_dst = node.parm(newName)
+        copyParameter(p_dst, p_src)
+        
+def multiparmRenamed(node, oldFolderName, newFolderName, children):
+    p_src = node.parm(oldFolderName)
+    if p_src != None:
+        p_src = node.parm(oldFolderName)
+        p_dst = node.parm(newFolderName)
+        
+        num = p_src.eval()
+        p_dst.set(num)
+        
+        for x in xrange(1, num + 1):
+            for oldChildName,newChildName in children:
+                parameterRenamed(node, oldChildName + str(x), newChildName + str(x))
+    
+if old_ver < 2:
+    node = kwargs['node']
+    parameterRenamed(node, 'deadline_job_name', 'deadline_jobname')
+    parameterRenamed(node, 'deadline_job_comment', 'deadline_jobcomment')
+    parameterRenamed(node, 'deadline_job_dept', 'deadline_jobdept')
+    
+    parameterRenamed(node, 'deadline_job_batch_name', 'deadline_jobbatchname')
+    parameterRenamed(node, 'deadline_job_pool', 'deadline_jobpool')
+    parameterRenamed(node, 'deadline_job_group', 'deadline_jobgroup')
+    parameterRenamed(node, 'deadline_job_priority', 'deadline_jobpriority')
+    parameterRenamed(node, 'deadline_concurrent_tasks', 'deadline_concurrenttasks')
+    parameterRenamed(node, 'deadline_pre_job_script', 'deadline_prejobscript')
+    parameterRenamed(node, 'deadline_post_job_script', 'deadline_postjobscript')
+    parameterRenamed(node, 'deadline_machine_limit', 'deadline_machinelimit')
+    parameterRenamed(node, 'deadline_machine_list', 'deadline_machinelist')
+    parameterRenamed(node, 'deadline_machine_list_black', 'deadline_machinelistblack')
+    parameterRenamed(node, 'deadline_on_job_complete', 'deadline_onjobcomplete')
+    
+    parameterRenamed(node, 'deadline_verbose_log', 'deadline_verboselog')
+    parameterRenamed(node, 'deadline_pdgmq_use_ip', 'deadline_pdgmquseip')
+    parameterRenamed(node, 'deadline_pdgmq_as_task', 'deadline_pdgmqastask')
+    parameterRenamed(node, 'deadline_force_reload_plugin', 'deadline_forcereloadplugin')
+    parameterRenamed(node, 'deadline_launch_monitor', 'deadline_launchmonitor')
+    
+    parameterRenamed(node, 'deadline_max_submit_tasks', 'deadline_maxsubmittasks')
+    parameterRenamed(node, 'deadline_max_check_tasks', 'deadline_maxchecktasks')
+    
+    parameterRenamed(node, 'deadline_override_repo', 'deadline_overriderepo')
+    parameterRenamed(node, 'deadline_connection_type', 'deadline_connectiontype')
+    parameterRenamed(node, 'deadline_plugin_directory', 'deadline_plugindirectory')
+    
+    parameterRenamed(node, 'deadline_pre_task_script', 'deadline_pretaskscript')
+    parameterRenamed(node, 'deadline_post_task_script', 'deadline_posttaskscript')
+    
+    multiparmRenamed(node, 'deadline_jobfile_kvpair', 'deadline_jobfilekvpair', \
+        [('deadline_jobfile_key', 'deadline_jobfilekey'), ('deadline_jobfile_value', 'deadline_jobfilevalue')])
+        
+    multiparmRenamed(node, 'deadline_pluginfile_kvpair', 'deadline_pluginfilekvpair', \
+        [('deadline_pluginfile_key', 'deadline_pluginfilekey'), ('deadline_pluginfile_value', 'deadline_pluginfilevalue')])
