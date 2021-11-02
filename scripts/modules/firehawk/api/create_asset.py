@@ -5,10 +5,10 @@ import re
 import traceback
 
 import firehawk_plugin_loader
-import firehawk.plugins
-import firehawk.api
-plugin_modules, api_modules=firehawk_plugin_loader.load_plugins(module_name='submit_logging') # load modules in the firehawk.api namespace
-firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=0)
+submit_logging = firehawk_plugin_loader.module_package('submit_logging').submit_logging
+debug_default = submit_logging.resolve_debug_default()
+if debug_default <= 9: debug_default = 0 # disable logging of asset creation if FH_VAR_DEBUG_PDG env var is below 10
+firehawk_logger = submit_logging.FirehawkLogger(debug=debug_default)
 
 firehawk_logger.timed_info(label='create_asset plugin loaded')
 firehawk_logger.debug('test debug logger')
@@ -23,7 +23,7 @@ def add_dependency(path, ancestor_path): # this is an asset dependency db hook, 
 def rebuild_tags(tags): # A method that can be customised to rebuild / alter tags used for asset creation.  For example, and output type of 'rendering', may require an extension tag to be customised.  This method can be patched to do so.
     return tags
 
-def get_tags_for_submission_hip(hip_name, element='pdg_setup', variant='', parent_top_net=None):
+def get_tags_for_submission_hip(hip_name, element='pdg_setup', variant='', parent_top_net=None): # a hip file for submission can have its own asset if needed
     if parent_top_net is None:
         raise Exception('ERROR: parent_top_net not provided: get_tags_for_submission_hip()')
 
@@ -33,8 +33,6 @@ def get_tags_for_submission_hip(hip_name, element='pdg_setup', variant='', paren
 
     if False in [ len(x)>0 for x in [ job_value, seq_value, shot_value ] ]:
         raise Exception('ERROR: job, seq, shot parm not set on topnet: get_tags_for_submission_hip()')
-        # msg += '\n\nEnsure the env vars JOB / SEQ / SHOT are defined before running houdini.\nThis allows the asset handler to save a root timestamped version of the hip file for the submission.'
-        # hou.ui.displayMessage(msg)
 
     tags = {
         'job': job_value,
@@ -57,7 +55,7 @@ def returnExtension(**tags): # some formats are not literal extensions, so we ex
         tags['extension'] = tags['format']
     return tags['extension']
 
-def returnFileName(**tags): # format's the provided tags and version into a file name.  The extension is also a subfolder under the asset path.
+def rebuildTagsForFileName(**tags):
     if 'dir_name' not in tags.keys(): tags['dir_name'] = None
     tags['extension'] = returnExtension(**tags)
     
@@ -73,6 +71,10 @@ def returnFileName(**tags): # format's the provided tags and version into a file
 
     firehawk_logger.debug( "tags['dir_name'] : {}, tags['file_name'] {}".format( tags['dir_name'], tags['file_name'] ) )
 
+    return tags
+
+def returnFileName(**tags): # format's the provided tags and version into a file name.  The extension is also a subfolder under the asset path.
+    tags = rebuildTagsForFileName(**tags)
     return tags['dir_name'], tags['file_name']
 
 def _ensure_dir_exists(dir_name):
@@ -83,7 +85,7 @@ def _ensure_dir_exists(dir_name):
             firehawk_logger.warning('Could not create path: {} Check permissions.'.format( dir_name ) )
             return
 
-def _create_asset(tags, auto_version=True, version_str=None, create_dirs=True): # This example function creates an asset by simply making a new directory, but it is also possible to replace this with the ability to request a new asset from a db/server.  The method can also return a path without creating a directory.  This method should not be referenced externally. 
+def _create_asset(tags, auto_version=True, version_str=None, create_dirs=True): # This example function creates an asset by simply making a new directory, but it is also possible to replace this with the ability to request a new asset from a db/server.  The method can also return a path without creating a directory.  This method should not be referenced externally. It can also return an existing path defined by tags with create_dirs=False
     firehawk_logger.debug('_create_asset:')
 
     if 'pdg_dir' not in tags: # if PDG_DIR was not resolved, we will not be creating an asset.
@@ -120,8 +122,16 @@ def _create_asset(tags, auto_version=True, version_str=None, create_dirs=True): 
 
     return dir_name, version_str
 
+
+
+def get_requirements():
+    return ['job', 'seq', 'shot', 'element', 'variant', 'asset_type', 'volatile' ]
+
 def getAssetPath(**tags): # This function should return a path and filename for an asset with the tags dict input provided.
-    requirements = ['job', 'seq', 'shot', 'element', 'variant', 'asset_type', 'volatile' ]
+    print('get_requirements(): {}'.format( get_requirements() ) )
+
+    requirements = tags.get('requirements', get_requirements())
+    print( 'Requirements to getAssetPath: {}'.format( tags ) )
     
     for key in requirements:
         if key not in tags:
@@ -134,6 +144,8 @@ def getAssetPath(**tags): # This function should return a path and filename for 
     if tags['volatile']=='off': tags['volatile']=False
 
     firehawk_logger.debug( 'getAssetPath with tags: {}'.format(tags) )
+
+    _create_asset = firehawk_plugin_loader.module_package('create_asset').create_asset._create_asset
     
     if 'version_str' in tags and tags['version_str'] is not None:
         firehawk_logger.debug( 'getAssetPath with specified version - createAssetsFromArguments' )
@@ -146,8 +158,6 @@ def getAssetPath(**tags): # This function should return a path and filename for 
     
     firehawk_logger.debug( 'getAssetPath returned dir_name: {} file_name: {}'.format( tags['dir_name'], tags['file_name'] ) )
     return tags['dir_name'], tags['file_name']
-
-
 
 def createAssetPath(**tags): # This method should create an asset if version_str (eg 'v005') is provided, or increment an asset if version_str is 'None'.  It can be patched with whatever method you wish, so long as it returns the same output.  It must return dir_name file_name and version (as an int)
     firehawk_logger.debug( 'api: create_asset tags: {}'.format(tags) )
