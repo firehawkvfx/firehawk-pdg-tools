@@ -33,6 +33,12 @@ def custom_handler(local_path, raw_file, work_item):
                 # set_output = None
                 firehawk_logger.timed_debug('read set_out')
                 set_output = work_item.stringAttribValue('set_output')
+
+                if set_output is None:
+                    firehawk_logger.debug( 'resolve_pdg_vars with set_output: {}'.format(set_output) )
+                    e = 'set_output is None. Ensure work_item.stringAttribValue(\'set_output\') is set correctly'
+                    raise e
+                
                 set_output = firehawk_read.resolve_pdg_vars(set_output, work_item=work_item)
                 firehawk_logger.timed_debug('set_output: {}'.format(set_output) )
                 # set_output = firehawk_read.getLiveParmOrAttribValue(work_item, 'set_output', debug=debug) # set_output is the unexpanded expression that should be used on the target.
