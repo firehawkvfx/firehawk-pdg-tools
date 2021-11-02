@@ -35,7 +35,7 @@ def get_is_exempt_from_hou_node_path(work_item):
     if work_item.isNoGenerate == True:
         print('\nExempt: isNoGenerate')
         exempt = True
-    if work_item.node.topNode().type().name() in [ 'pythonscript' ]:
+    if work_item.node.topNode().type().name() in [ 'pythonscript', 'pythonprocessor' ]:
         print('\nExempt: pythonscript')
         exempt = True
     if exempt: print('No hou node because the work item exempt from this requirement\n')
