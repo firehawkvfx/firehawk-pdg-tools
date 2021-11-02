@@ -52,8 +52,8 @@ reload(firehawk_dynamic_versions)
 
 versions_object = firehawk_dynamic_versions.versions()
 
-houdini_version = float( '.'.join( os.environ['HOUDINI_VERSION'].split('.')[0:2] ) )
-houdini_minor_version = os.environ['HOUDINI_VERSION'].split('.')[2]
+houdini_version = float( '.'.join( hou.applicationVersionString().split('.')[0:2] ) )
+houdini_minor_version = int( hou.applicationVersionString().split('.')[2] )
 update_method = 'user_data' # options: [ 'parms', 'user_data']. The method to store versions that are submitted.
 
 #####
@@ -861,9 +861,9 @@ class submit():
                 hip_path = os.path.split(hip_path)[1]
                 self.debugLog( "hip_path split: {}".format( hip_path ) )
 
-                index_key = firehawk_read.getLiveParmOrAttribValue(work_item, 'index_key') # should be unexpanded string.
+                index_key_unexpanded = firehawk_read.getLiveParmOrAttribValue(work_item, 'index_key_unexpanded') # should be unexpanded string.
 
-                if firehawk_read.get_is_exempt_from_hou_node_path(work_item) == False: # Trackers dont have hou nodes.
+                if firehawk_read.get_is_exempt_from_hou_node_path(work_item) == False: # Trackers dont have hou nodes for distributed sims.
                     ### Set data on the node db multiparm, uses hou.
                     hou_node_path = firehawk_read.get_hou_node_path(work_item)
                     hou_node = hou.node(hou_node_path)
@@ -878,10 +878,10 @@ class submit():
                         self.warningLog( "ERROR: invalid path for hou_node" )
                         return None
 
-                    self.persistent_override( hou_node_path=hou_node_path, parm_name='version_db_index_key', value=index_key, existence_check=False ) # when the version db is added to the node, ensure it has an unexpaded index key expression on it.
+                    self.persistent_override( hou_node_path=hou_node_path, parm_name='version_db_index_key', value=index_key_unexpanded, existence_check=False ) # when the version db is added to the node, ensure it has an unexpaded index key expression on it.
 
                 with work_item.makeActive():
-                    index_key = hou.expandString( index_key )
+                    index_key = hou.expandString( index_key_unexpanded )
                 
                 work_item.setStringAttrib('index_key', str(index_key) ) # in distributed sims, the attribute for the index key may have updated on the rop fetch, so we need to update it
                 self.debugLog( "onScheduleVersioning() index_key: {}".format( index_key ) )
@@ -928,7 +928,7 @@ class submit():
                         v['value'] = firehawk_read.getLiveParmOrAttribValue(work_item, v['attribute'], type=v['var_data_type'])
                         parm_dict[k] = v
 
-                    # Some items will have work_items.isNoGenerate = true (eg: the distributed sim tracker).  These are special, since they are orphans and have not children. if we dont ensure that index key and work item index is unique, there may be job name conflicts.
+                    # Some items will have work_items.isNoGenerate = true (eg: the distributed sim tracker).  These are special, since they are orphans and have no children. if we dont ensure that index key and work item index is unique, there may be job name conflicts.
 
                     dict_update = submission_attributes
 
@@ -971,8 +971,13 @@ class submit():
                                 # It is difficult to know if a new asset version should be requested.  This code is hard to handle in a simple way. look to asset_created = logic at the bottom to get this idea...  We must consider if it has already been done for the relevent set of workitems in the output, we must also consider if we are resuming a cook and an aset was made in the last cook.
                                 self.timeLog(label='Dynamic versioning: Prepare eval if version required')
                                 auto_version = firehawk_read.getLiveParmOrAttribValue(work_item, 'auto_version', type='string')
+                                
                                 self.timeLog(label='Dynamic versioning: Get Auto version setting')
                                 self.debugLog( '...auto_version is set to: {}'.format( auto_version ) )
+                                
+                                if str(auto_version).isdigit():
+                                    raise pdg.CookError('auto_version should not be a number, it is a setting!')
+
                                 node_work_items = work_item.node.workItems
                                 asset_created_states = [ pdg.workItemState.CookedSuccess, pdg.workItemState.CookedCache, pdg.workItemState.Cooking, pdg.workItemState.CookedFail, pdg.workItemState.Dirty ] # Any of these states indicate an asset must have already been created.  CookedFail is a little special in that we might not know, but we have to handle it as if the asset was created otherwise we might keep requesting new assets to be created.
                                 scheduled_states = [ pdg.workItemState.Scheduled, pdg.workItemState.Waiting, pdg.workItemState.Uncooked ]
@@ -1097,17 +1102,21 @@ class submit():
                                 self.ord_dict['version'] =  { 'update_db': None, 'name': None, 'attribute': 'version', 'var_data_type': 'int', 'value': version } # update dictionary
                                 if self.debug>=11: self.debugLog( 'self.ord_dict: {}'.format(self.ord_dict) )
 
+                                self.debugLog( "Define tags" )
+                                keys_from_ord_dict = [ 'job', 'seq', 'shot', 'element', 'animating_frames', 'asset_type', 'format', 'volatile', 'variant', 'version', 'hip', 'index_key_unexpanded', 'index_key_expanded', 'index_key' ]
+                                
                                 if self.ord_dict['asset_type']['value'] == 'rendering': # prepare res overrides
                                     self.debugLog( 'asset_type rendering' )
+
+                                    keys_from_ord_dict.append('res') # res should be included in the job spec when rendering
+
                                     if hou_node.type().name()=='arnold':
                                         resolutionx = self.ord_dict['res']['value'].split('_')[0]
                                         resolutiony = self.ord_dict['res']['value'].split('_')[1]
-                                        self.debugLog( 'set resoltuion for arnold at node: {} x{} y{}'.format( hou_node_path, resolutionx, resolutiony ) )
+                                        self.debugLog( 'set resolution for arnold at node: {} x{} y{}'.format( hou_node_path, resolutionx, resolutiony ) )
                                         self.persistent_override( hou_node_path=hou_node_path, parm_name='res_overridex', value=resolutionx )
                                         self.persistent_override( hou_node_path=hou_node_path, parm_name='res_overridey', value=resolutiony )                        
                                 
-                                self.debugLog( "Define tags" )
-                                keys_from_ord_dict = [ 'job', 'seq', 'shot', 'element', 'animating_frames', 'asset_type', 'format', 'volatile', 'res', 'variant', 'version', 'hip', 'index_key_unexpanded', 'index_key_expanded', 'index_key' ]
                                 tags = { 'pdg_dir': pdg_dir } # Init tags.  PDG_DIR may be required for asset creation
                                 
                                 for key in keys_from_ord_dict: # the final tags that will be passed to the asset creation module
