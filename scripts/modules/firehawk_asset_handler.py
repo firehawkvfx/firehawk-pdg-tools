@@ -99,11 +99,15 @@ class asset():
         self.debugLog('tags: {}'.format( tags ))
 
         # getting all required parms
-        create_asset = True
-        if 'create_asset' in tags:
-            create_asset = tags['create_asset'] # asset creation can be disabled in the dict if required.
-            if create_asset != True:
-                self.debugLog( "create_asset disabled for this workitem in tags: {}".format( tags ) )
+
+        self.debugLog( "create_asset disabled for this workitem in tags: {}".format( tags ) )
+
+        create_asset = tags.get('create_asset', True)
+        if not isinstance( create_asset, bool ):
+            raise Exception('create_asset tag value is not type bool')
+        if create_asset != True:
+            self.debugLog( "create_asset disabled for this workitem in tags: {}".format( tags ) )
+
         scheduled = True # reutrn failed if this is occuring within a scheduler
         if 'scheduled' in tags: scheduled = tags['scheduled'] # scheduled assets only upversion once.
 
@@ -115,10 +119,10 @@ class asset():
         # We usually need to convert these to an expression on the node that channel refs the parm (varying by the wedge). tags['use_inputs_as'] == 'channels'
         # We also may need to pass through a preevaluated value to construct a path as a string. tags['use_inputs_as'] == 'tags'
         # self.dynamic_input_keys can be customised by setting it on the object.
-        
-        def update_tags( tags, format ):
+
+        def update_tags( tags, formatstr ):
             for key in self.dynamic_input_keys:
-                tags[key] = format.format(key)
+                tags[key] = formatstr.format(key)
 
         if 'use_inputs_as' not in tags: # be default, evaluate path output based on tag values.
             tags['use_inputs_as'] = 'tags'
@@ -140,7 +144,7 @@ class asset():
 
         asset_path = ''
         try :
-            self.debugLog( "Check if version_str is defined: {}".format(version_str) )
+            self.debugLog( "Check if version_str is defined: {}".format( tags.get('version_str', None) ) )
             if show_times: self.timeLog(label='Dynamic versioning: Prep tags to query asset path')
 
             asset_dir, asset_filename = None, None
