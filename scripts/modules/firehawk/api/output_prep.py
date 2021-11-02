@@ -1,5 +1,5 @@
 import os
-
+import traceback
 import firehawk_plugin_loader
 firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger()
 
@@ -95,6 +95,7 @@ def update_workitems(pdg_node, item_holder, upstream_items, generation_type, eva
 
     firehawk_logger.timed_info(label='update_workitems: start')
     import pdg, json
+    import hou # could try to remove this, temporarily needed to evaluate output path string.
     firehawk_logger.timed_info( label='update_workitems: iter node_list:' )
     
     try:
@@ -157,28 +158,36 @@ def update_workitems(pdg_node, item_holder, upstream_items, generation_type, eva
         # index_key_unexpanded = pdg_node['index_key'].evaluateString(work_item)
         work_item.setStringAttrib('index_key_unexpanded', index_key_unexpanded)
 
-        firehawk_logger.timed_info( label='update_workitems: make active' )
-        with work_item.makeActive():
-            if eval_output_expr_once:
-                if set_output is None:
-                    set_output = pdg_node.parameter('set_output').evaluateString() # output parm uses in this case a constant expression that we only need to eval once.  it doesn't vary per work item.  This operation is expensive.
-            else: 
-                set_output = pdg_node.parameter('set_output').evaluateString() # evaluating this as a unique value for every work item is not recommended, this logic may take a long time to do so!
-            index_key_expanded = pdg_node['index_key_expanded'].evaluateString()
-        
-        work_item.setStringAttrib('set_output', set_output)
-        
-        firehawk_logger.timed_info( label='update_workitems: set index key: {}'.format( item ) )
+        try:
+            firehawk_logger.timed_info( label='update_workitems: make active' )
 
-        work_item.setStringAttrib('index_key', index_key_expanded) # precompute the index key for submission. it is ephemeral, should not be used beyond the next node.
-
-        firehawk_logger.timed_info( label='update_workitems: done set index key: {}'.format( item ) )
-        if resolution is not None:
-            work_item.setIntAttrib('resolution', resolution)
+            with work_item.makeActive():
+                if eval_output_expr_once:
+                    if set_output is None:
+                        set_output = pdg_node.parameter('set_output').evaluateString() # output parm uses in this case a constant expression that we only need to eval once.  it doesn't vary per work item.  This operation is expensive.
+                else: 
+                    set_output = pdg_node.parameter('set_output').evaluateString() # evaluating this as a unique value for every work item is not recommended, this logic may take a long time to do so!
+                
+                index_key_expanded = pdg_node['index_key_expanded'].evaluateString()
             
-        work_item.setIntAttrib('onScheduleVersioned', 0) # This attribute is updated if items get scheduled to track asset creation.
-        firehawk_logger.timed_info( label='update_workitems: prepare_output_type: {}'.format( item ) )
-        prepare_output_type(work_item, output_topnode_path, output_topnode_type_name, output_format)
-        firehawk_logger.timed_info( label='update_workitems: end item: {}'.format( item ) )
+            work_item.setStringAttrib('set_output', set_output)
+            
+            firehawk_logger.timed_info( label='update_workitems: set index key: {}'.format( item ) )
+
+            work_item.setStringAttrib('index_key', index_key_expanded) # precompute the index key for submission. it is ephemeral, should not be used beyond the next cook node.
+            work_item.setStringAttrib('index_key_expanded', index_key_expanded)
+
+            firehawk_logger.timed_info( label='update_workitems: done set index key: {}'.format( item ) )
+            if resolution is not None:
+                work_item.setIntAttrib('resolution', resolution)
+                
+            work_item.setIntAttrib('onScheduleVersioned', 0) # This attribute is updated if items get scheduled to track asset creation.
+            firehawk_logger.timed_info( label='update_workitems: prepare_output_type: {}'.format( item ) )
+            prepare_output_type(work_item, output_topnode_path, output_topnode_type_name, output_format)
+            firehawk_logger.timed_info( label='update_workitems: end item: {}'.format( item ) )
+        except Exception as e:
+            msg='\n\noutput_prep.py failed while constructing workitem:\n{}'.format( traceback.format_exc(e) )
+            raise Exception( msg )
+            #raise pdg.CookError("output_prep.py failed while constructing workitem")
 
     firehawk_logger.info('update_workitems done.\n\n')
