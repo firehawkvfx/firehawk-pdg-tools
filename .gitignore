@@ -4,3 +4,7 @@ example_hip/output/*
 hda/backup/*
 tests/*/backup/*
 tests/*/output/*
+
+*.bgeo.sc
+*.jpg
+*_bak*.hip

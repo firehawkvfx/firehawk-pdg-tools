@@ -211,9 +211,9 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
     def pythonBin(self, platform):
         """
         Returns the path to a python executable.  This executable
-        will be used to execute generic python and is substituted in commands 
-        with the __PDG_PYTHON__ token. 
-        
+        will be used to execute generic python and is substituted in commands
+        with the __PDG_PYTHON__ token.
+
         platform Is an identifier with the same rules as python's sys.platform.
                  (should be 'linux*' | 'darwin' | 'win*')
         local    True means returns the absolute path on the local file system.
@@ -230,9 +230,9 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
     def hythonBin(self, platform):
         """
         Returns the path to a hython executable.  This executable
-        will be used to execute hython and is substituted in commands 
-        with the __PDG_HYTHON__ token. 
-        
+        will be used to execute hython and is substituted in commands
+        with the __PDG_HYTHON__ token.
+
         platform Is an identifier with the same rules as python's sys.platform.
                  (should be 'linux*' | 'darwin' | 'win*')
         """
@@ -282,7 +282,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
             self.max_cpu_slots = cpu_count() / 4
         elif max_cpu_slots_mode == -1:
             self.max_cpu_slots = max(1, cpu_count() - 1)
-        
+
         self.static_onStartCook()
         self.static_cook = static
         if not os.path.exists(self.workingDir(True)):
@@ -297,7 +297,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
 
         if not self.isCallbackServerRunning():
             self.startCallbackServer()
-        
+
         return True
 
     def onStopCook(self, cancel):
@@ -318,7 +318,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
         # create process job on demand
         if num_slaves > 0 and self.subprocessJob is None:
             self.subprocessJob = createProcessJob()
-        
+
         servers = []
         for i in range(num_slaves):
             token = '{:02d}'.format(i)
@@ -348,7 +348,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
 
     def _generateEnvironment(self, work_item, cpu_slots):
         """
-        Generate an environment dict for the given workitem, based on 
+        Generate an environment dict for the given workitem, based on
         the current process's environ.
         """
         # Populate the task environment.  We inherit the PDG host
@@ -356,9 +356,9 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
         job_env = os.environ.copy()
 
         # Tell Houdini tasks to limit the number of threads to the number
-        # of cpu slots the user has specified (default 1), limited by 
+        # of cpu slots the user has specified (default 1), limited by
         # whatever is set in the host environment.
-        
+
         # NOTE: The user can override this behavior by explicitly setting
         # the env var in a pdg::scheduler or item environment
         # FIXME: This houdini-specific hack is... unfortunate
@@ -379,7 +379,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
         # check the task environment variables
         env_map = work_item.environment
         setmap = {}
-        for var,val in env_map.iteritems():
+        for var,val in env_map.items():
             var = str(var.strip().encode('ascii', 'ignore'))
             setmap[var] = str(val).strip().encode('ascii', 'ignore')
         job_env.update(setmap)
@@ -404,7 +404,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
         # special case PATH - we want to prepend the given value instead of replace
         if 'PATH' in job_env_dict and 'PATH' in job_env:
             job_env_dict['PATH'] = job_env_dict['PATH'] + os.pathsep + job_env['PATH']
-        
+
         job_env.update(job_env_dict)
 
         try:
@@ -526,7 +526,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
 
         if self.static_cook:
             self.static_completed(name, index)
-            
+
     def workItemFailed(self, name, index, jobid=''):
         """
         callback for work item failure
@@ -571,7 +571,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
         if job_id is None:
             return
         self.onWorkItemSetAttribute(item_name, attr_name, data)
-    
+
     def onSharedServerStarted(self, args):
         """
         Called when a job has started a new sharedserver
@@ -632,7 +632,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
         item_command = item_command.replace("__PDG_PYTHON__", self.pythonBin(sys.platform))
         item_command = item_command.replace("__PDG_HYTHON__", self.hythonBin(sys.platform))
         return item_command
-    
+
     def onScheduleStatic(self, dependency_map, dependent_map, ready_items):
         self.static_loadDependencies(dependency_map, dependent_map, ready_items)
 
@@ -677,7 +677,7 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
                     if hda not in self.hars_pools:
                         # fist time this pooled hda has come in - create a pool
                         self.addProcessorPool(hda + '_pool', hda, global_pool_size)
-                    
+
                     if hda in self.hars_pools:
                         hars_pool = self.hars_pools[hda]
                         if len(hars_pool) == 0:
@@ -719,8 +719,8 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
             def open_output_file():
                 outf = open(item_log_path, 'w')
                 return outf
-            
-            # replace any job vars, and then any Houdini vars ($HFS etc) 
+
+            # replace any job vars, and then any Houdini vars ($HFS etc)
             item_command = expand_vars(item_command, job_env)
             item_command = os.path.expandvars(item_command)
 
@@ -752,11 +752,11 @@ class LocalScheduler(CallbackServerMixin, StaticCookMixin, PyScheduler):
 
         self.workItemStartCook(item_name, -1)
         return scheduleResult.Succeeded
-    
+
     def getStatusURI(self, work_item):
         # no seperate status page for local scheduler
         return ""
-    
+
     def getLogURI(self, work_item):
         log_path = '{}/logs/{}.log'.format(self.tempDir(True), work_item.name)
         uri = 'file:///' + log_path
@@ -784,7 +784,7 @@ def start_async(item_command, output_file, job_env):
         logging.warning(err)
         return None
     proc = subprocess.Popen(argv,
-                            stdout=output_file, 
+                            stdout=output_file,
                             stderr=subprocess.STDOUT,
                             stdin=subprocess.PIPE,
                             shell=False, env=job_env,
@@ -818,7 +818,7 @@ def start_hdaprocessor_async(item_command, output_file, poolname, job_env):
         output_file.write(err)
         logging.warning(err)
         return None
-    proc = subprocess.Popen(argv, 
+    proc = subprocess.Popen(argv,
                             stdout=output_file,
                             stderr=subprocess.STDOUT,
                             stdin=subprocess.PIPE,

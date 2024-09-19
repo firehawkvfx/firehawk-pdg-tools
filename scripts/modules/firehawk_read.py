@@ -35,12 +35,12 @@ def get_is_exempt_from_hou_node_path(work_item):
     if work_item.isNoGenerate == True:
         print('\nExempt: isNoGenerate')
         exempt = True
-    if work_item.node.topNode().type().name() in [ 'pythonscript' ]:
+    if work_item.node.topNode().type().name() in [ 'pythonscript', 'pythonprocessor' ]:
         print('\nExempt: pythonscript')
         exempt = True
     if exempt: print('No hou node because the work item exempt from this requirement\n')
     return exempt
-    
+
 def get_hou_node_path(work_item, debug=debug):
     if get_is_exempt_from_hou_node_path(work_item):
         return
@@ -50,7 +50,7 @@ def get_hou_node_path(work_item, debug=debug):
     if work_item_node_type_name not in accepted_list: # Currently, a hou node path and versioning applies to nodes being cooked by nodes in this list. We should detect if that is not the case, since the attributes do not use the NoCopy limited scope, and can polute the network downstream.
         print('No hou node because the work item is not from {}.  work_item_node_type_name: {}'.format( accepted_list, work_item_node_type_name ) )
         return
-    
+
     if work_item_node_type_name == 'houdiniserver':
         hou_node_path = work_item.node.topNode().path()
 
@@ -61,7 +61,7 @@ def get_hou_node_path(work_item, debug=debug):
             hou_node_path = top_path # If the rop is nested inside the top, apply versioning to the top node itself.
         else:
             hou_node_path = rop_path # else, apply versioning to the target, eg: rop geometry in sops.
-    
+
     debugLog('done: {}'.format(hou_node_path), debug=debug)
     return hou_node_path
 
@@ -98,8 +98,8 @@ def get_output(hou_node, work_item=None, set_output=None, output_parm_name=None,
     if set_output is None: set_output = getLiveParmOrAttribValue(work_item, 'set_output', debug=debug)
     if set_output:
         debugLog('...get string data', debug=debug)
-        if output_parm_name is None: 
-            
+        if output_parm_name is None:
+
             output_parm_name = work_item.data.stringData('outputparm', 0)
             debugLog('...get string data done', debug=debug)
         result = hou_node.parm(output_parm_name).unexpandedString()
@@ -109,14 +109,14 @@ def get_output(hou_node, work_item=None, set_output=None, output_parm_name=None,
     return result
 
 def resolve_pdg_vars(path, work_item=None, node_path=None):
-    
-    if '__PDG_DIR__' in path:
+
+    if path is not None and '__PDG_DIR__' in path:
         debugLog( '__PDG_DIR__ in: {}'.format( path ) )
         pdg_dir = None
 
         if work_item is None and node_path is None:
             raise Exception('resolve_pdg_vars: requires either work_item or node_path')
-        
+
         # if work_item is not None and hasattr(work_item, 'environment') and 'PDG_DIR' in work_item.environment:
         #     pdg_dir = work_item.environment['PDG_DIR']
         if 'PDG_DIR' in os.environ:
@@ -129,15 +129,19 @@ def resolve_pdg_vars(path, work_item=None, node_path=None):
             pdg_dir = hou.node(node_path).userData( 'workingdir_local' )
         # elif 'workingdir_local' in user_data_dict: # we can resolve the working dir for the local session as well.
         #     pdg_dir = user_data_dict['workingdir_local']
-        
+
         debugLog( 'PDG_DIR: {}'.format(pdg_dir) )
 
-        if pdg_dir is not None:
+        if pdg_dir is not None and path is not None:
             path = path.replace( '__PDG_DIR__', pdg_dir )
             debugLog( 'result path: {}'.format( path ) )
         else:
             print('WARNING: No PDG_DIR found')
-    return pjoin( os.path.normpath( path ) )
+
+    if path is not None: # windows compatibility
+        path = pjoin( os.path.normpath( path ) )
+
+    return path
 
 def get_output_index_key_expr(hou_node, debug=debug):
     version_db_hou_node_path = get_version_db_hou_node_path( hou_node_path=hou_node.path() ) # the version db may not reside on the output node.
@@ -195,7 +199,7 @@ def getLiveParmOrAttribValue(work_item, attrib_name, type='string', use_batch_pa
             # else:
                 # self.warningLog( 'Warning: parm_name: {} not in pdg_node: {} parameterNames: {}'.format( parm_name, top_node_path, pdg_node.parameterNames ) )
             return result
-        
+
         # Get overrides dictionary for python ref to upstream overrides if no parm was defined.  those expressions will be evaluated in that location for the current workitem.
         if top_node_path is None: # Top node path can be provided to get a value from a different location and detect the correct overrides
             top_node_path = work_item.node.topNode().path()
@@ -240,21 +244,21 @@ def getLiveParmOrAttribValue(work_item, attrib_name, type='string', use_batch_pa
             if type == 'string':
                 result = str( work_item.attrib(attrib_name).value() )
             elif type == 'float':
-                result = int( work_item.attrib(attrib_name).value() )              
+                result = int( work_item.attrib(attrib_name).value() )
             elif type == 'array':
-                result = work_item.attribArray(attrib_name)    
+                result = work_item.attribArray(attrib_name)
             else:
                 result = int( work_item.attrib(attrib_name).value() )
         debugLog( '...get attrib name: "{}" result: {}'.format( attrib_name, result ) , debug=debug )
 
         return result
 
-    except ( Exception ), e :
+    except ( Exception ) as e :
         import traceback
         warningLog( 'ERROR: During getLiveParmOrAttribValue' )
         traceback.print_exc(e)
         # raise e
-    
+
 
 def get_version_db_hou_node_path(work_item=None, hou_node_path=None, debug=debug):
     if work_item is not None:

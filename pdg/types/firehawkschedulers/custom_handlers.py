@@ -17,6 +17,7 @@ def custom_handler(local_path, raw_file, work_item):
     # firehawk_logger.timed_info(label='custom_handlers.py: timed_info')
     firehawk_logger.debug('')
     firehawk_logger.debug('### CUSTOM CACHE HANDLER ### {}'.format( work_item.name ) )
+    firehawk_logger.debug('local_path: {}'.format( local_path ) )
     # Skip work items that have custom caching disabled.
     # if firehawk_submit.submit().getLiveParmOrAttribValue(work_item, 'use_custom_caching') == 0:
     #     return pdg.cacheResult.Skip
@@ -35,10 +36,10 @@ def custom_handler(local_path, raw_file, work_item):
                 set_output = work_item.stringAttribValue('set_output')
 
                 if set_output is None:
-                    firehawk_logger.debug( 'resolve_pdg_vars with set_output: {}'.format(set_output) )
-                    e = 'set_output is None. Ensure work_item.stringAttribValue(\'set_output\') is set correctly'
-                    raise e
-                
+                    firehawk_logger.warning('set_output is None. Ensure work_item.stringAttribValue(\'set_output\') is set correctly')
+                    endMessage()
+                    return pdg.cacheResult.Miss
+
                 set_output = firehawk_read.resolve_pdg_vars(set_output, work_item=work_item)
                 firehawk_logger.timed_debug('set_output: {}'.format(set_output) )
                 # set_output = firehawk_read.getLiveParmOrAttribValue(work_item, 'set_output', debug=debug) # set_output is the unexpanded expression that should be used on the target.
@@ -56,7 +57,7 @@ def custom_handler(local_path, raw_file, work_item):
                 # index_key_expr = None
                 index_key_expr = firehawk_read.get_output_index_key_expr(hou_node, debug=debug_default)
                 firehawk_logger.timed_debug('done aquisition')
-            
+
             if (set_output is not None) and (get_output is None):
                 firehawk_logger.timed_debug( 'Result: Miss. Output on target is not yet set. get_output: {} set_output: {}'.format( get_output, set_output ) )
                 endMessage()
@@ -89,7 +90,7 @@ def custom_handler(local_path, raw_file, work_item):
             firehawk_logger.timed_debug( 'Result: Miss. no file / file with size 0' )
             endMessage()
             return pdg.cacheResult.Miss
-        
+
         firehawk_logger.timed_debug( 'Result: Hit.' )
         endMessage()
         return pdg.cacheResult.Hit
@@ -111,4 +112,4 @@ def custom_handler(local_path, raw_file, work_item):
 #         else:
 #             print('Custom handler for tag {}'.format(tag))
 #             type_registry.registerCacheHandler(tag, custom_handler)
-    
+

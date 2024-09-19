@@ -44,6 +44,7 @@ firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit
 if debug_default: firehawk_logger.info("Using firehawk_submit: {}".format(__file__))
 
 import firehawk_asset_handler
+from importlib import reload
 reload(firehawk_asset_handler)
 import firehawk_read
 reload(firehawk_read)
@@ -52,8 +53,8 @@ reload(firehawk_dynamic_versions)
 
 versions_object = firehawk_dynamic_versions.versions()
 
-houdini_version = float( '.'.join( os.environ['HOUDINI_VERSION'].split('.')[0:2] ) )
-houdini_minor_version = os.environ['HOUDINI_VERSION'].split('.')[2]
+houdini_version = float( '.'.join( hou.applicationVersionString().split('.')[0:2] ) )
+houdini_minor_version = int( hou.applicationVersionString().split('.')[2] )
 update_method = 'user_data' # options: [ 'parms', 'user_data']. The method to store versions that are submitted.
 
 #####
@@ -66,6 +67,7 @@ create_asset = firehawk_plugin_loader.module_package('create_asset').create_asse
 # It's possible to customize work item attributes that will be attached to a submission object ordered dict.
 submission_attributes = firehawk_plugin_loader.module_package('submission_attributes').submission_attributes.get_submission_attributes()
 timestamp_submit = firehawk_plugin_loader.module_package('timestamp_submit').timestamp_submit
+pdgkvstore = firehawk_plugin_loader.module_package('pdgkvstore').pdgkvstore
 
 class submit():
     def __init__(self, node=None, debug=debug_default, logger_object=None):
@@ -84,7 +86,7 @@ class submit():
             self.parent = self.node.parent()
         else:
             self.parent = None
-        
+
         self.top_net = None
         self.preflight_node = None
         self.preflight_path = None
@@ -132,10 +134,10 @@ class submit():
         #     start_time = self.start_time
         # if self.last_time is None:
         #     self.last_time = start_time
-        
+
         # message = "--- {} seconds --- Passed during Pre Submit --- {} seconds --- {}".format( '%.4f' % (time.time() - start_time),  '%.4f' % (time.time() - self.last_time), label )
         # self._verboseLog( message )
-        
+
         # self.last_time = time.time()
 
     def debugLog(self, message):
@@ -233,7 +235,7 @@ class submit():
                                 set_user_data=False, \
                                 preflight=True, \
                                 exec_in_main_thread=True \
-                                ): 
+                                ):
                                 # this will duplicate the save to a target folder used for achival and rendering of submissions.
         self.debugLog( 'get parent' )
         self.debugLog( self.node )
@@ -247,19 +249,22 @@ class submit():
             self.preflight_path = None
             self.preflight_node = None
 
-        if parent_top_net.parm('regenerationtype').evalAsInt() != 1:
-            self.debugLog( "...Setting 'Update Work Items Only' on TOP Net for On Node Recook to ensure work items dont always cook after saving hip." )
-            parent_top_net.parm('regenerationtype').set(1)
-        
+        if (houdini_minor_version >= 465 and houdini_version == 18.5) or houdini_version >= 19.0:
+            if parent_top_net.parm('regenerationtype').evalAsInt() != 1:
+                self.debugLog( "...Setting 'Update Work Items Only' on TOP Net for On Node Recook to ensure work items dont always cook after saving hip." )
+                parent_top_net.parm('regenerationtype').set(1)
+        else:
+            firehawk_logger.warning( "...Warning: This houdini build {}.{} is < 18.5.465.  Setting 'Update Work Items Only' on TOP Net is not possible.".format( houdini_version, houdini_minor_version ) )
+
         self.debugLog( "self.preflight_node: {}".format( self.preflight_node ) )
 
         hip_name = self.hip_path
 
         datetime_object, datetime_object_str = timestamp_submit.update_timestamp()
-        
+
         if timestamp_submission:
             self.debugLog( "Will Save an alternate hip file for submission" )
-            timestamp_str = timestamp_submit.timestamp_submission_str(datetime_object, self.hip_dirname, self.hip_basename)    
+            timestamp_str = timestamp_submit.timestamp_submission_str(datetime_object, self.hip_dirname, self.hip_basename)
             self.debugLog('Current Timestamp: {}'.format( timestamp_str ) )
 
             # construct asset for timestamped hip
@@ -276,7 +281,7 @@ class submit():
         if preflight and self.preflight_node is None:
             self.warningLog(  "Failed to aquire preflight node" )
             return
-        
+
         if set_user_data:
             self.debugLog( "Set last_submitted_hip_file on node '/' hip_name: {}".format( hip_name ) )
             if exec_in_main_thread:
@@ -300,7 +305,7 @@ class submit():
         # this will generate the selected workitems
         self.pdg_node = self.node.getPDGNode()
         self.node.executeGraph(False, False, False, True)
-        
+
         added_workitems = []
 
         added_nodes = []
@@ -318,12 +323,12 @@ class submit():
                             if dependency not in added_nodes:
                                 added_nodes.append(dependency)
 
-        
+
         added_nodes.append(self.pdg_node)
         for node in added_nodes:
             append_node_dependencies(node)
         diff_list = np.setdiff1d(added_nodes, added_node_dependencies)
-        
+
         while len(diff_list) > 0:
             for node in diff_list:
                 append_node_dependencies(node)
@@ -362,7 +367,7 @@ class submit():
                     return "%3.1f%s%s" % (num, unit, suffix)
                 num /= 1024.0
             return "%.1f%s%s" % (num, 'Yi', suffix)
-        
+
         protect_dirs = []
         sizes = []
 
@@ -380,7 +385,7 @@ class submit():
                     size = get_size(path_dir)
                     self.debugLog( "add .protect file into protect_dir: {} {}".format( path_dir, sizeof_fmt(size) ) )
                     sizes.append( size )
-            
+
             for result_data in expected_result_data_list:
                 path = result_data[0]
                 path_dir = os.path.split(path)[0]
@@ -423,7 +428,7 @@ class submit():
 
     def overrideHipPath(self, work_item=None, hip_path=None, item_command=None):
         # if item_command is None: item_command=work_item.command
-        
+
         if work_item and hip_path:
             # work_item.data.setString('hip', hip_path, 0)
             work_item.setFileAttrib('hip', pdg.File(hip_path, 'file/hip', 0, False), 0)
@@ -448,7 +453,7 @@ class submit():
             work_item.setCommand(item_command)
 
             self.debugLog( '...Updated item_command: {}'.format( item_command ) )
-            
+
             return item_command
 
     def get_parent_top_net(self, parent): # first parent, will recurse from here until top net is found
@@ -459,7 +464,7 @@ class submit():
         try:
             # this can be used in place of the on presubmit item code to insert functionality during onscheduled callback.
             self.debugLog('onPreSubmitItem():')
-            
+
             # print('job_env:')
             # print( json.dumps( job_env, indent=4, sort_keys=True) )
 
@@ -477,7 +482,7 @@ class submit():
 
             if item_command is None:
                 item_command = work_item.command
-            
+
             self.infoLog( "\nCheck roppath in node parameters" )
 
             rop_node = None
@@ -485,7 +490,7 @@ class submit():
                 self.infoLog( "Checking accepted output types: No roppath in parms for workitem." )
                 top_node = work_item.node.topNode()
                 top_node_type_name = top_node.type().nameComponents()[-2]
-                
+
                 if top_node_type_name not in versions_object.output_types:
                     self.infoLog( "Bypassing onScheduleVersioning(): Top Node: {} not in accepted output types: {}".format( top_node_type_name, versions_object.output_types ) )
                     return item_command
@@ -497,7 +502,7 @@ class submit():
                 self.infoLog( "rop_node = True" )
                 # rop_node = hou.node( str( work_item.node['roppath'].evaluate() ) )
                 rop_node = True
-            
+
             self.debugLog( "__init__" )
             # self.__init__( rop_node, debug=self.debug, logger_object=self.logger_object ) # can we try and remove this? difficult to debug
 
@@ -561,21 +566,21 @@ class submit():
                 elif firehawk_read.get_hou_node_path(work_item) is not None and work_item.intAttribValue('disable_output', 0) != 1 : # These work items must have assets / versions on disk.
                     version = self.onScheduleVersioning( work_item, job_env['PDG_DIR'] )
                     self.timeLog( label='Dynamic versioning. version: {}'.format(version) )
-                    
+
                     if version is None:
                         msg = 'FAILED: versioning. work item output version: {}'.format( version )
                         raise pdg.CookError( msg )
                         return None
             else:
                 self.debugLog( "Skipping versioning: no index_key or resolved hou node path for work item" )
-            
+
             self.infoLog( "item_command: {}".format( item_command) )
             self.timeLog(label='Up to end')
             self.infoLog( "...onPreSubmitItem complete for work_item: {} command: {}\n".format(work_item.name, item_command) )
 
             return item_command
 
-        except ( Exception ), e :
+        except ( Exception ) as e :
             import traceback
             msg = 'ERROR: During onPreSubmitItem: {}'.format( e )
             self.warningLog( msg )
@@ -632,7 +637,7 @@ class submit():
             else:
                 self.debugLog( 'Node doesn\'t exist: {} wont\'t set parm {} value: {}'.format( hou_node_path, parm_name, value ) )
 
-        
+
         parm_path = hou_node_path+'/'+parm_name
         # By setting the parm name to the path, we have a unique override by full path allowing preservation downstream
         parm_name = parm_path.strip('/').replace('/', '_')
@@ -680,16 +685,24 @@ class submit():
                 attrib_names = work_item.attribNames()
             else:
                 all_wedge_attribs = work_item.data.stringDataArray('wedgeattribs')
-                
+
                 attrib_names = []
                 if hasattr(work_item, 'data') and hasattr(work_item.data, 'allDataMap'):
                     attrib_names = [x for x in work_item.data.allDataMap]
-            
-            channel_attribs = [re.sub('\channel$', '', i) for i in attrib_names if i.endswith('channel') ]
+
+            channel_attribs = []
+            channel_attrib_candidates = [i for i in attrib_names if i.endswith('channel') ]
+            if channel_attrib_candidates:
+                try:
+                    channel_attribs = [re.sub(r'channel$', '', i) for i in channel_attrib_candidates]
+                except Exception as exc:
+                    msg = "Failed on channel_attribs: {} Exception: {}".format(channel_attrib_candidates, exc)
+                    self.warningLog(msg)
+                    raise ValueError(msg)
             missing_wedge_attribs = [i for i in channel_attribs if ( i not in all_wedge_attribs ) ]
-            
+
             # if self.debug>=11: print 'DEBUG 11:', '...wedgeattribs: found:', all_wedge_attribs
-            
+
             if len(missing_wedge_attribs) > 0:
                 self.warningLog( "\nMISSING WEDGE ATTRIBS WERE REPAIRED DUE TO A BUG WHERE WEDGES DURING ON SCHEDULE ARE NOT PRESERVED" )
                 self.warningLog( 'missing_wedge_attribs: {}'.format( missing_wedge_attribs ) )
@@ -708,7 +721,7 @@ class submit():
             else:
                 if hasattr( item, 'data' ) and hasattr( item.data, 'setStringArray' ):
                     item.data.setStringArray('wedgeattribs', all_wedge_attribs)
-        
+
         self.debugLog('Dynamic versioning: wedge attribs passed')
         for item in attrib_targets:
             if houdini_version >= 18.0:
@@ -718,7 +731,7 @@ class submit():
                 if hasattr( item, 'data' ) and hasattr( item.data, 'setInt' ):
                     item.data.setInt("{}valuetype".format(parm_name), 1, 0)
 
-                if hasattr( item, 'data' ) and hasattr( item.data, 'setString' ): 
+                if hasattr( item, 'data' ) and hasattr( item.data, 'setString' ):
                     item.data.setString("{}channel".format(parm_name), parm_path, 0)
 
         self.debugLog('Dynamic versioning: Dynamic override: Checkpoint') # inspecting crashes TODO remove this
@@ -762,35 +775,37 @@ class submit():
                 self.debugLog('set_output is none. try getLiveParmOrAttribValue for set_output')
                 set_output = firehawk_read.getLiveParmOrAttribValue(work_item, 'set_output')
                 self.debugLog('set_output: {}'.format( set_output ))
-            
+
             ensured_valid_result = None
             if set_output is not None:
                 if output_parm_name is None:
                     self.debugLog('read output_parm_name')
                     output_parm_name = work_item.data.stringData('outputparm', 0)
-                
+
                 self.debugLog('output_parm_name: {}'.format( output_parm_name ))
-                
-                if houdini_version > 18.0 and houdini_minor_version <= 463:
-                    print( 'Warning: this version of houdini doesn\'t  correctly handle expressions on parms with wedges' )
+
+                if houdini_version == 18.5 and houdini_minor_version <= 463:
+                    print( 'Warning: this version of houdini doesn\'t correctly handle expressions on parms with wedges' )
 
                 hou_node_path = firehawk_read.get_hou_node_path(work_item)
 
                 self.debugLog( 'hou_node_path: {}'.format( hou_node_path ) )
-                ensured_valid_result = self.persistent_override( hou_node_path=hou_node_path, parm_name=output_parm_name, value=set_output, work_item=work_item )
+                ensured_valid_result = self.persistent_override(
+                    hou_node_path=hou_node_path, parm_name=output_parm_name, value=set_output,
+                    work_item=work_item, graph=work_item.graph )
                 # self.dynamic_override(work_item, output_parm_name, set_output, 'string', set_parm_on_node=hou_node)
-            
+
             if validate: # validate is disabled for the mplay node, because it is a rop bu has no output.
                 if ensured_valid_result:
                     self.debugLog('set_output() Added persistent_override for output_parm_name: {} hou_node_path: {} value: {}'.format( output_parm_name, hou_node_path, set_output) )
                 else:
                     self.debugLog('Warning: ensured_valid_result: {} Not adding persistent_override for output_parm_name: {} hou_node_path: {}'.format( ensured_valid_result, output_parm_name, hou_node_path ) )
 
-        except ( Exception ), e :
+        except ( Exception ) as e :
             import traceback
             self.warningLog( 'ERROR: During set_output: hou_node: {} work_item: {} output_parm_name: {} set_output: {}'.format( hou_node, work_item, output_parm_name, set_output) )
-            traceback.print_exc(e)
-            raise e
+            tb = traceback.format_exc()
+            raise ValueError(f"{e}\nStack Trace:\n{tb}")
 
     # def get_output(self, hou_node, work_item=None, set_output=None, output_parm_name=None):
     #     # The output path parm must be set.
@@ -803,7 +818,7 @@ class submit():
     #         return None
 
 
-    def persistent_override( self, hou_node_path=None, parm_name=None, value=None, existence_check=True, work_item=None): # used to set permanent values on parms.  Not recommended for parms that vary per wedge, use the wedge workflow for this.
+    def persistent_override( self, hou_node_path=None, parm_name=None, value=None, existence_check=True, work_item=None, graph=None): # used to set permanent values on parms.  Not recommended for parms that vary per wedge, use the wedge workflow for this.
         ensured_valid_result = False
         self.debugLog( 'Persistent override for: {} parm: {}'.format( hou_node_path, parm_name) )
         hou_node = hou.node( hou_node_path ) # These are used for validation but could be removed if needed
@@ -815,19 +830,22 @@ class submit():
             self.warningLog( 'Error: Cannot add persistent override. No parm {} from: {}'.format( parm_name, hou_node_path ) )
             return ensured_valid_result
 
-        sidecar_file_path = versions_object.get_sidecar_json_file_path() # update sidecar file.  the side car file allows a graph running to update versions and parms, to be later loaded for running work items, or if the hip file submitted is later loaded.
-        
-        if sidecar_file_path is None:
+        container_name = versions_object.get_container_name() # update sidecar file.  the side car file allows a graph running to update versions and parms, to be later loaded for running work items, or if the hip file submitted is later loaded.
+
+        if container_name is None:
             raise Exception('ERROR: No sidecar file path resolved to persist overrides.')
 
-        self.debugLog( 'sidecar_file_path: {}'.format(sidecar_file_path) )
-        json_object = versions_object.get_sidecar_json_object()
+        self.debugLog( 'persistent_override() container_name: {}'.format(container_name) )
+        self.debugLog( 'persistent_override() get_sidecar_json_object()' )
+        if work_item and not graph:
+            graph = work_item.graph
+        json_object = versions_object.get_sidecar_json_object(graph=graph)
 
         if hou_node.path() not in json_object: json_object[ hou_node.path() ] = {} # init the second level dict.
-        
+
         if 'parm_'+parm_name not in json_object[ hou_node.path() ] or json_object[ hou_node.path() ][ 'parm_'+parm_name ] != value:
             # update the file only if data not already equal.
-            
+
             json_object[ hou_node.path() ][ 'parm_'+parm_name ] = value
 
             if work_item is not None: # to resolve __PDG_DIR__ in the current session, we need to record the local working dir when it was scheduled.
@@ -835,9 +853,8 @@ class submit():
                 if 'workingdir_local' not in json_object[ hou_node.path() ] and workingdir_local:
                     json_object[ hou_node.path() ][ 'workingdir_local' ] = workingdir_local
 
-            with file( sidecar_file_path , 'w' ) as sidecar_file:
-                json.dump( json_object, sidecar_file ) # TODO ensure this is an atomic operation / reading will not fail during write. NFS should cover this though anyway and older submissions should only be updating data that is not currently relevent as it applies downstream.
-                self.debugLog( 'sidecar_file wrote: {} {}'.format( sidecar_file_path, json_object ) )
+            # set json object
+            pdgkvstore.work_item_db_put(container_name, json_object, graph=graph)
             ensured_valid_result = True
         else:
             ensured_valid_result = True
@@ -861,9 +878,9 @@ class submit():
                 hip_path = os.path.split(hip_path)[1]
                 self.debugLog( "hip_path split: {}".format( hip_path ) )
 
-                index_key = firehawk_read.getLiveParmOrAttribValue(work_item, 'index_key') # should be unexpanded string.
+                index_key_unexpanded = firehawk_read.getLiveParmOrAttribValue(work_item, 'index_key_unexpanded') # should be unexpanded string.
 
-                if firehawk_read.get_is_exempt_from_hou_node_path(work_item) == False: # Trackers dont have hou nodes.
+                if firehawk_read.get_is_exempt_from_hou_node_path(work_item) == False: # Trackers dont have hou nodes for distributed sims.
                     ### Set data on the node db multiparm, uses hou.
                     hou_node_path = firehawk_read.get_hou_node_path(work_item)
                     hou_node = hou.node(hou_node_path)
@@ -873,16 +890,16 @@ class submit():
                     if version_db_hou_node is None:
                         self.warningLog( 'ERROR: invalid path for version_db_hou_node: {}'.format(version_db_hou_node_path) )
                         return None
-                    
+
                     if not hou_node:
                         self.warningLog( "ERROR: invalid path for hou_node" )
                         return None
 
-                    self.persistent_override( hou_node_path=hou_node_path, parm_name='version_db_index_key', value=index_key, existence_check=False ) # when the version db is added to the node, ensure it has an unexpaded index key expression on it.
+                    self.persistent_override( hou_node_path=hou_node_path, parm_name='version_db_index_key', value=index_key_unexpanded, existence_check=False, graph=work_item.graph ) # when the version db is added to the node, ensure it has an unexpaded index key expression on it.
 
                 with work_item.makeActive():
-                    index_key = hou.expandString( index_key )
-                
+                    index_key = hou.expandString( index_key_unexpanded )
+
                 work_item.setStringAttrib('index_key', str(index_key) ) # in distributed sims, the attribute for the index key may have updated on the rop fetch, so we need to update it
                 self.debugLog( "onScheduleVersioning() index_key: {}".format( index_key ) )
 
@@ -921,18 +938,18 @@ class submit():
                         'hip': {'var_data_type': 'string' }
                     }
                     parm_dict = {}
-                    for k,v in dict_init.iteritems():
+                    for k,v in dict_init.items():
                         v['update_db'] = True
                         v['name'] = k
                         v['attribute'] = k
                         v['value'] = firehawk_read.getLiveParmOrAttribValue(work_item, v['attribute'], type=v['var_data_type'])
                         parm_dict[k] = v
 
-                    # Some items will have work_items.isNoGenerate = true (eg: the distributed sim tracker).  These are special, since they are orphans and have not children. if we dont ensure that index key and work item index is unique, there may be job name conflicts.
+                    # Some items will have work_items.isNoGenerate = true (eg: the distributed sim tracker).  These are special, since they are orphans and have no children. if we dont ensure that index key and work item index is unique, there may be job name conflicts.
 
                     dict_update = submission_attributes
 
-                    for k,v in dict_update.iteritems():
+                    for k,v in dict_update.items():
                         v['update_db'] = None
                         v['name'] = None
                         v['attribute'] = k
@@ -946,13 +963,13 @@ class submit():
                         parm_dict['variant']['value'] = str(int(work_item.index))
                         parm_dict['format']['value'] = 'py' # wild assumption here, will have to correct it if we are proven wrong!
                         parm_dict['asset_type']['value'] = 'script'
-                    
+
                     self.debugLog( 'parm_dict: {}'.format(parm_dict) )
 
                     def sort_func(x): # ensure version is last in the dictionary.  other values will determine the generated version, so it cannot be known until last.
                         value = int( x[0] == 'version' )
                         return value
-                    
+
                     self.ord_dict = collections.OrderedDict( sorted(parm_dict.items(), key=lambda x: sort_func(x) ) )
 
                     if uses_version_db:
@@ -971,13 +988,18 @@ class submit():
                                 # It is difficult to know if a new asset version should be requested.  This code is hard to handle in a simple way. look to asset_created = logic at the bottom to get this idea...  We must consider if it has already been done for the relevent set of workitems in the output, we must also consider if we are resuming a cook and an aset was made in the last cook.
                                 self.timeLog(label='Dynamic versioning: Prepare eval if version required')
                                 auto_version = firehawk_read.getLiveParmOrAttribValue(work_item, 'auto_version', type='string')
+
                                 self.timeLog(label='Dynamic versioning: Get Auto version setting')
                                 self.debugLog( '...auto_version is set to: {}'.format( auto_version ) )
+
+                                if str(auto_version).isdigit():
+                                    raise pdg.CookError('auto_version should not be a number, it is a setting!')
+
                                 node_work_items = work_item.node.workItems
                                 asset_created_states = [ pdg.workItemState.CookedSuccess, pdg.workItemState.CookedCache, pdg.workItemState.Cooking, pdg.workItemState.CookedFail, pdg.workItemState.Dirty ] # Any of these states indicate an asset must have already been created.  CookedFail is a little special in that we might not know, but we have to handle it as if the asset was created otherwise we might keep requesting new assets to be created.
                                 scheduled_states = [ pdg.workItemState.Scheduled, pdg.workItemState.Waiting, pdg.workItemState.Uncooked ]
                                 all_considered_states = asset_created_states + scheduled_states
-                                
+
                                 work_item_indexes = [ x.batchParent if x.batchParent else x for x in node_work_items ] # qualify if we should be using the batch parent instead for each work item
                                 valid_work_items = [ x for x in work_item_indexes if index_key == x.data.stringData('index_key', 0) ] # consider the list of work items / wedges that match this submission.  filter remove workitems that don't share the index key,
                                 # valid_work_items = [ x for x in node_work_items if index_key == firehawk_read.getLiveParmOrAttribValue(x, 'index_key') ] # This could be faster if precomputed the index key.
@@ -1024,7 +1046,7 @@ class submit():
                                     self.debugLog( 'submit_to_scheduler: {}'.format(submit_frames_str) )
                                     work_item.data.setString( 'submit_frames_str', submit_frames_str, 0 ) # deprecate this in h18 in favour of python objects
                                     work_item.data.setStringArray( 'submit_work_items', submit_work_items )
-                                    
+
                                     for x in scheduled_items: # Dont submit things twice!
                                         x.data.setInt('spooled', 1, 0)
                                 else:
@@ -1048,7 +1070,7 @@ class submit():
                                     self.debugLog( '\n   current_states: {}\n'.format(current_states) )
                                     asset_already_created = False
                                     update_item.setFloatAttrib('create_asset', [0,0,1])
-                                else: 
+                                else:
                                     # self.warningLog( "ERROR: no work items in list to evaluate if assets exists or not. current_states: {}".format( current_states ) )
                                     msg = "ERROR: no work items in list to evaluate if assets exists or not. index_key: {} current_states: {}".format( index_key, current_states )
                                     self.debugLog( msg )
@@ -1059,7 +1081,7 @@ class submit():
 
                                 # print 'Check if asset_already_created is on for path: {} index_key: {}'.format( hou_node.path(), index_key ),
                                 self.debugLog( 'asset_already_created: {}'.format( asset_already_created ) )
-                                
+
                                 if asset_already_created: # use existing version.
                                     self.debugLog( 'Asset is created for this run.' )
                                     if update_method == 'parms':
@@ -1068,7 +1090,7 @@ class submit():
                                             version = str( hou_node.parm('version').eval() )
                                     else: # we must be using user data.
 
-                                        json_object = versions_object.get_sidecar_json_object()
+                                        json_object = versions_object.get_sidecar_json_object(graph=work_item.graph)
                                         if (json_object is None) or (version_db_hou_node_path not in json_object) or ('version_'+index_key not in json_object[ version_db_hou_node_path ]):
                                             with work_item.makeActive():
                                                 version = str( hou_node.parm('version').eval() ) # in some circumstances, like resubmission due to an error of only some work items, the asset will have been created, but the json_object will not have been updated with the version, since every submission starts with a new json_object.  We will fall back to using the resolved version for the parm, assuming the last submitted versions were automatically pulled into the session.
@@ -1097,19 +1119,23 @@ class submit():
                                 self.ord_dict['version'] =  { 'update_db': None, 'name': None, 'attribute': 'version', 'var_data_type': 'int', 'value': version } # update dictionary
                                 if self.debug>=11: self.debugLog( 'self.ord_dict: {}'.format(self.ord_dict) )
 
+                                self.debugLog( "Define tags" )
+                                keys_from_ord_dict = [ 'job', 'seq', 'shot', 'element', 'animating_frames', 'asset_type', 'format', 'volatile', 'variant', 'version', 'hip', 'index_key_unexpanded', 'index_key_expanded', 'index_key' ]
+
                                 if self.ord_dict['asset_type']['value'] == 'rendering': # prepare res overrides
                                     self.debugLog( 'asset_type rendering' )
+
+                                    keys_from_ord_dict.append('res') # res should be included in the job spec when rendering
+
                                     if hou_node.type().name()=='arnold':
                                         resolutionx = self.ord_dict['res']['value'].split('_')[0]
                                         resolutiony = self.ord_dict['res']['value'].split('_')[1]
-                                        self.debugLog( 'set resoltuion for arnold at node: {} x{} y{}'.format( hou_node_path, resolutionx, resolutiony ) )
-                                        self.persistent_override( hou_node_path=hou_node_path, parm_name='res_overridex', value=resolutionx )
-                                        self.persistent_override( hou_node_path=hou_node_path, parm_name='res_overridey', value=resolutiony )                        
-                                
-                                self.debugLog( "Define tags" )
-                                keys_from_ord_dict = [ 'job', 'seq', 'shot', 'element', 'animating_frames', 'asset_type', 'format', 'volatile', 'res', 'variant', 'version', 'hip', 'index_key_unexpanded', 'index_key_expanded', 'index_key' ]
+                                        self.debugLog( 'set resolution for arnold at node: {} x{} y{}'.format( hou_node_path, resolutionx, resolutiony ) )
+                                        self.persistent_override( hou_node_path=hou_node_path, parm_name='res_overridex', value=resolutionx, graph=work_item.graph )
+                                        self.persistent_override( hou_node_path=hou_node_path, parm_name='res_overridey', value=resolutiony, graph=work_item.graph )
+
                                 tags = { 'pdg_dir': pdg_dir } # Init tags.  PDG_DIR may be required for asset creation
-                                
+
                                 for key in keys_from_ord_dict: # the final tags that will be passed to the asset creation module
                                     dict_value = self.ord_dict[key]['value']
                                     self.debugLog('   {} : {}'.format( key, dict_value ) )
@@ -1129,7 +1155,7 @@ class submit():
                                 ##### TODO Improve logging of create asset reasons here.
 
                                 self.timeLog(label='Dynamic versioning: Prepare tags for asset')
-                                
+
                                 tags['use_inputs_as'] = 'tags'
 
                                 asset_creator = firehawk_asset_handler.asset( debug=self.debug, logger_object=None, start_time=self.start_time ) # An instance of the asset handler with passed through logging.
@@ -1142,7 +1168,7 @@ class submit():
 
                                     self.debugLog( 'Create version with tags (exr):' )
                                     self.debugLog( exr_tags )
-                                    
+
                                     exr_asset_path, exr_version = asset_creator.custom_create_new_asset_version( exr_tags, show_times=True )
                                     # ensure the archive version used will be the same.
                                     tags['version'] = exr_version
@@ -1152,7 +1178,7 @@ class submit():
                                 self.debugLog( 'Create version with tags:' )
                                 self.debugLog( tags )
                                 asset_path, version = asset_creator.custom_create_new_asset_version( tags, show_times=True ) # this function defines how to create a new asset.  all other vars required to create a new asset must exist prior to this point
-                                
+
                                 self.timeLog(label='Dynamic versioning: Ensure Asset exists')
                                 self.ord_dict['version']['value'] = version # update dictionary
                                 self.ord_dict['version_str'] = { 'value': 'v' + str(version).zfill(3) } # initialise a string for the version for convenience
@@ -1173,9 +1199,9 @@ class submit():
                                     self.debugLog( "Setting dynamic override and value on multiparm: {} {}".format( multiparm_name, value ) )
                                     self.timeLog( label='Dynamic versioning: Prepare to set Multiparm: {}'.format( multiparm_name ) )
                                     parm = hou_node.parm( multiparm_name )
-                                    
+
                                     if parm.eval() != value:
-                                        hdefereval.executeInMainThreadWithResult( parm.set, value ) # values in the db multiparm (UI) are updated for the index_key.    
+                                        hdefereval.executeInMainThreadWithResult( parm.set, value ) # values in the db multiparm (UI) are updated for the index_key.
                                 else: # update the version in the dedicated user data node.
                                     if aquired_version is not None:
                                         # this may be unsafe.
@@ -1188,20 +1214,20 @@ class submit():
                                         #     hdefereval.executeInMainThreadWithResult( version_db_hou_node.setUserData, 'version_'+index_key, str(aquired_version) )
 
                                         # update sidecar file.  the side car file allows a graph running to update versions, to be later loaded by any multiparm for running work items, or if the hip file submitted is later loaded.
-                                        # sidecar_file_path = versions_object.get_sidecar_json_file_path()
+                                        # sidecar_file_path = versions_object.get_container_name()
 
                                         # self.debugLog( 'sidecar_file_path: {}'.format(sidecar_file_path) )
-                                        json_object = versions_object.get_sidecar_json_object()
+                                        json_object = versions_object.get_sidecar_json_object(graph=work_item.graph)
 
                                         if version_db_hou_node.path() not in json_object: json_object[ version_db_hou_node.path() ] = {} # init the second level dict.
-                                        
+
                                         if 'version_'+index_key not in json_object[ version_db_hou_node.path() ] or json_object[ version_db_hou_node.path() ][ 'version_'+index_key ] != str(aquired_version):
                                             # update the file only if data not present ot not already equal.
                                             json_object[ version_db_hou_node.path() ][ 'version_'+index_key ] = str(aquired_version)
 
 
                                     ### WARNING ### These functions may need to be decoupled if there are stability issues.
-                                    # self.update_multiparm(hou_node_path, index_key, version=aquired_version) 
+                                    # self.update_multiparm(hou_node_path, index_key, version=aquired_version)
 
                                 self.timeLog(label='Dynamic versioning: Update version if defined')
                             elif attribute not in []: # attributes not in the exeption list will raise an error
@@ -1216,52 +1242,47 @@ class submit():
 
 
                         work_item.data.setInt('version', version, 0) # the version attrib is valid only for this work item at the current stage of submission.  It should not be referenced anywhere except for submission purposes.
-                
+
                 work_item.data.setInt('onScheduleVersioned', 1, 0) # track that this work item has been versioned and ready for submission.
-                
+
                 self.timeLog(label='Dynamic versioning: Set version attrib')
 
                 # save the current json object with the batch parent, always.
-                
+
                 if json_object is None:
                     json_object_was_changed = False
-                    json_object = versions_object.get_sidecar_json_object() # we may already have a json object if we are the first batch for the version.  otherwise, other batches wont have new assets, and we should load the side car file to attach it as an attribute.
+                    json_object = versions_object.get_sidecar_json_object(graph=work_item.graph) # we may already have a json object if we are the first batch for the version.  otherwise, other batches wont have new assets, and we should load the side car file to attach it as an attribute.
                 else:
                     json_object_was_changed = True
-                
-                    with file( versions_object.get_sidecar_json_file_path() , 'w' ) as versiondb_file:
-                        json.dump( json_object, versiondb_file ) # Don't read this file from work items. it is for the current hip file only to read in event of a crash.  it represents the versions state for this hip file.
-                        self.debugLog( 'versiondb_file wrote: {}'.format( json_object ) )
+                    pdgkvstore.work_item_db_put(versions_object.get_container_name(), json_object, graph=work_item.graph)
 
-                
                 set_on_item = work_item
                 if work_item.batchParent is not None: set_on_item = work_item.batchParent
                 # Stash version data on work items
                 set_on_item.setPyObjectAttrib('versiondb', json_object) # TODO this attrib can be used by the work items.  need to ensure other work items with different batch parents in the same submission can also read this.
                 work_item.setAttribFlag("versiondb", pdg.attribFlag.NoCopy, True) # don't let this propogate downstream, it will make debugging confusing.
                 # Stash version data on disk.  Do not read from this on farm.  Although data may not have changed, we always ensure this file is written for a user to recover the versions used in the last submission.
-                # versiondb_file = open( versions_object.get_sidecar_json_file_path() , 'w')
+                # versiondb_file = open( versions_object.get_container_name() , 'w')
 
-                
 
-                # This next op optionally updates the current hip with all versions.  Hip state should not be relied upon, since pdg pilot submission cannot set it: we shouldn't set parms for a submission to work, we we can do it as a post operation.
-                # This operation has also caused problems with freezing historically.  If in doubt, turn it off.
-                autoupdate = work_item.attribValue('autoupdate')
-                if autoupdate is not None and int( autoupdate ) and not self.disable_update_versions:
-                    if json_object_was_changed:
-                        self.debugLog( "pull_all_versions_to_all_multiparms()" )
-                        versions_object.pull_all_versions_to_all_multiparms( check_hip_matches_submit=False, exec_in_main_thread=True, work_item=set_on_item, use_json_file=False ) # If hanging occurs, consider disabling this.  setting parms and making changes in the main thread has been known to cause freezes.  Produciton safe workflows should not depend on this operation, it is done for convenience.
+                # could cause instability
+                # # This next op optionally updates the current hip with all versions.  Hip state should not be relied upon, since pdg pilot submission cannot set it: we shouldn't set parms for a submission to work, we we can do it as a post operation.
+                # # This operation has also caused problems with freezing historically.  If in doubt, turn it off.
+                # autoupdate = work_item.attribValue('autoupdate')
+                # if autoupdate is not None and int( autoupdate ) and not self.disable_update_versions:
+                #     if json_object_was_changed:
+                #         self.debugLog( "pull_all_versions_to_all_multiparms()" )
+                #         versions_object.pull_all_versions_to_all_multiparms( check_hip_matches_submit=False, exec_in_main_thread=True, work_item=set_on_item, use_json_file=False ) # If hanging occurs, consider disabling this.  setting parms and making changes in the main thread has been known to cause freezes.  Produciton safe workflows should not depend on this operation, it is done for convenience.
 
                 self.debugLog( "### end multiversion db block ###" )
-                
+
                 # return the output path for the work item
                 if uses_version_db:
                     return version
                 else:
                     return # trackers / isNoGenerate items dont have versions.
                 # ### end dynamic version db ###
-        except ( Exception, hou.Error ), e :
+        except ( Exception, hou.Error ) as e :
             import traceback
-            print( 'Exception: {}'.format(e) )
-            traceback.print_exc(e)
-            raise e
+            tb = traceback.format_exc()
+            raise ValueError(f"{e}\nStack Trace:\n{tb}")

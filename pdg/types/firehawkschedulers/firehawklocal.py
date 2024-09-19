@@ -1,5 +1,5 @@
 
-from __future__ import print_function 
+from __future__ import print_function
 
 #
 # Copyright (c) <2020> Side Effects Software Inc.
@@ -53,9 +53,9 @@ from pdg.utils import expand_vars, print_headless
 
 ### Do not edit imports above this line.  This serves as a baseline for future updates to the localscheduler ###
 
-import logging 
-from collections import namedtuple 
-import re 
+import logging
+from collections import namedtuple
+import re
 from pdg import CookError
 
 sys.path.append(os.path.expandvars("$HFS/houdini/pdg/types/schedulers")) # TODO: Try and remove this if it can be done without producing errors.
@@ -94,6 +94,8 @@ class FirehawkLocalScheduler(LocalScheduler):
 
         work_item.setCommand( item_command )
 
+        # could cause instability
+
         kwargs = {}
         required_components = ['job', 'seq', 'shot', 'element', 'variant'] # store kv for work item permanently to aquire logs if cooked from cache / or just generated.
         for key in required_components:
@@ -101,10 +103,10 @@ class FirehawkLocalScheduler(LocalScheduler):
             kv = { key: value }
             firehawk_logger.debug( 'update kv: {}'.format( kv ) )
             kwargs.update( kv )
-        
+
         kwargs['version'] = 'v'+str( work_item.intAttribValue('version') ).zfill(3)
         kwargs['subindex'] = work_item.batchIndex
-        
+
         firehawk_logger.debug('kvstore kwargs: {}'.format( kwargs ))
         if all( [ x in kwargs for x in required_components ] ): # If all components are available, then stash job data in our kv store.
             key = '{}/{}/{}/{}/{}/{}/{}'.format( kwargs['job'], kwargs['seq'], kwargs['shot'], kwargs['element'], kwargs['variant'], kwargs['version'], kwargs['subindex'] )
@@ -112,8 +114,8 @@ class FirehawkLocalScheduler(LocalScheduler):
                 'log_uri': { 'value': self.getLogURI(work_item), 'type': 'string'}
             }
             firehawk_logger.debug('write: {}'.format( value ) )
-            pdgkvstore.work_item_db_put(key, value) # write value to disk, or a database if available.
-                
+            pdgkvstore.work_item_db_put(key, value, graph=work_item.graph) # write value to disk, or a database if available.
+
         self._verboseLog("End presubmit")
 
         return item_command
@@ -126,7 +128,7 @@ class FirehawkLocalScheduler(LocalScheduler):
     #         uri = 'file://' + log_path
     #     else: # we need to aquire the uri from our kv store
     #         json_object = houpdgkvstore.getPdgKvStore(work_item) # attempt to retrieve work item data from kv store if attribs are not available.
-    #         if not isinstance(json_object, dict) or len(json_object)==0: # Couldn't retrieve a kvstore for the work item, 
+    #         if not isinstance(json_object, dict) or len(json_object)==0: # Couldn't retrieve a kvstore for the work item,
     #             return ''
     #         required_attribs = ['log_uri']
     #         if not isinstance(json_object, dict) or not all( [ x in json_object for x in required_attribs ] ):
@@ -134,6 +136,6 @@ class FirehawkLocalScheduler(LocalScheduler):
     #         uri = json_object['log_uri']['value']
     #     return uri+'?file/firehawk/log'
 
-    def registerTypes(type_registry): 
-        firehawk_logger.info("Init firehawklocalscheduler schedulers") 
- 
+    def registerTypes(type_registry):
+        firehawk_logger.info("Init firehawklocalscheduler schedulers")
+

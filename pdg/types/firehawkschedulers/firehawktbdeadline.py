@@ -23,14 +23,14 @@
 #
 # COMMENTS:     Defines a Thinkbox Deadline scheduler implementation for PDG.
 #               This module depends on the deadline commandline
-#               which is installed with the Deadline client, for example: 
+#               which is installed with the Deadline client, for example:
 #               %DEADLINE_PATH%\deadlinecommand.exe
 #
 #               To use this module you must ensure that DEADLINE_PATH is set
 #               in the environment. This also requires the custom PDGDeadline
 #               plugin for Deadline that is shipped with Houdini. The plugin
 #               can be found at $HFS/houdini/pdg/plugins
-#               
+#
 #               Currently supports both new and old MQ.
 #               New MQ path uses the ServiceManager to share MQ use.
 #               Supports MQ on farm, local, or connecting to existing.
@@ -73,9 +73,9 @@ from pdgutils import PDGNetMQRelay, mqGetError, mqCreateMessage, PDGNetMessageTy
 
 ### Do not edit imports above this line.  This serves as a baseline for future updates to the localscheduler ###
 
-import logging 
-from collections import namedtuple 
-import re 
+import logging
+from collections import namedtuple
+import re
 from pdg import CookError
 
 sys.path.append(os.path.expandvars("$HFS/houdini/pdg/types/schedulers")) # TODO: Try and remove this if it can be done without producing errors.
@@ -124,10 +124,10 @@ class FirehawkDeadlineScheduler(DeadlineScheduler):
             kv = { key: value }
             firehawk_logger.debug( 'update kv: {}'.format( kv ) )
             kwargs.update( kv )
-        
+
         kwargs['version'] = 'v'+str( work_item.intAttribValue('version') ).zfill(3)
         kwargs['subindex'] = work_item.batchIndex
-        
+
         firehawk_logger.debug('kvstore kwargs: {}'.format( kwargs ))
         if all( [ x in kwargs for x in required_components ] ): # If all components are available, then stash job data in our kv store.
             key = '{}/{}/{}/{}/{}/{}/{}'.format( kwargs['job'], kwargs['seq'], kwargs['shot'], kwargs['element'], kwargs['variant'], kwargs['version'], kwargs['subindex'] )
@@ -135,8 +135,8 @@ class FirehawkDeadlineScheduler(DeadlineScheduler):
                 'log_uri': { 'value': self.getLogURI(work_item), 'type': 'string'}
             }
             firehawk_logger.debug('write: {}'.format( value ) )
-            pdgkvstore.work_item_db_put(key, value) # write value to disk, or a database if available.
-                
+            pdgkvstore.work_item_db_put(key, value, graph=work_item.graph) # write value to disk, or a database if available.
+
         self._verboseLog("End presubmit")
 
         return item_command
@@ -158,5 +158,5 @@ class FirehawkDeadlineScheduler(DeadlineScheduler):
         # Add to pending queue to process in update
         self.pending_tasks_queue.append((new_task_id, work_item))
 
-    def registerTypes(type_registry): 
-        firehawk_logger.info("Init firehawkdeadlinecheduler schedulers") 
+    def registerTypes(type_registry):
+        firehawk_logger.info("Init firehawkdeadlinecheduler schedulers")

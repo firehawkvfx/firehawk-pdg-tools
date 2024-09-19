@@ -1,9 +1,15 @@
 from functools import partial
 import os, sys
 
+import firehawk_submit
 import firehawk_plugin_loader
+
 debug_default = firehawk_plugin_loader.resolve_debug_default()
 firehawk_logger = firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(debug=debug_default)
+post_flight = firehawk_plugin_loader.module_package('post_flight').post_flight
+
+houdini_version = float( '.'.join( os.environ['HOUDINI_VERSION'].split('.')[0:2] ) )
+houdini_minor_version = int( os.environ['HOUDINI_VERSION'].split('.')[2] )
 
 def pull_all_versions_to_all_multiparms(exec_in_main_thread=False, use_json_file=True):
     import firehawk_dynamic_versions
@@ -18,6 +24,15 @@ def init_firehawk_topnet_parms(parent):
     top_net_path = firehawk_read.get_parent_top_net(parent).path()
     firehawk_dynamic_versions.versions().init_firehawk_topnet_parms( top_net_path )
 
+def update_parms( pdg_context, taskgraph_file, hip_name, exec_in_main_thread, handler, event):
+    firehawk_logger.info('...update_parms event handler')
+    # handler.removeFromAllEmitters() # ??? this might be hanging
+    # firehawk_logger.info('...Running post_flight.graph_complete.')
+    post_flight.graph_complete( hip_name ) # you may wish to perform an operation on the hip asset after completion of the graph.
+    firehawk_logger.info( '...Updating Parms/Versions in this Hip session. exec_in_main_thread: {}'.format( exec_in_main_thread ) )
+    pull_all_versions_to_all_multiparms(exec_in_main_thread=exec_in_main_thread, use_json_file=True) # we update parms last, but since this is coming from a callback, we needs to use hou's ability to execute in the main thread.
+    firehawk_logger.info('...Finished update_parms in event handler.')
+
 class Preflight(): # This class will be used for assigning and using preflight nodes and cooking the main graph.  reloads may not work on this SESI code.
     def __init__(self, node=None, debug=None, logger_object=None):
         self.node = node
@@ -27,64 +42,47 @@ class Preflight(): # This class will be used for assigning and using preflight n
     def set_update_workitems(self, node):
         # submitObject = firehawk_submit.submit( debug=self._verbose, logger_object=None )
         parent_top_net = self.submit.get_parent_top_net(node)
-        regenerationtype_parm = parent_top_net.parm('regenerationtype')
-        
-        if regenerationtype_parm and regenerationtype_parm.evalAsInt() != 1: regenerationtype_parm.set(1)
+
+        if (houdini_minor_version >= 465 and houdini_version == 18.5) or houdini_version >= 19.0:
+            regenerationtype_parm = parent_top_net.parm('regenerationtype')
+            if regenerationtype_parm and regenerationtype_parm.evalAsInt() != 1: regenerationtype_parm.set(1)
+        else:
+            firehawk_logger.warning( "...Warning: This houdini build {}.{} is < 18.5.465.  Setting 'Update Work Items Only' on TOP Net is not possible.".format( houdini_version, houdini_minor_version ) )
 
     def cook(self, use_preflight_node=False):
         import hou, pdg
-        try:
 
-            exec_in_main_thread=True
-            if not hou.isUIAvailable():
-                exec_in_main_thread=False
+        exec_in_main_thread=True
+        if not hou.isUIAvailable():
+            exec_in_main_thread=False
 
-            node = self.node
+        node = self.node
+        hou.setContextOption("last_pdg_cook", node.path())
+        # ensure firehawk parms exist on topnet
+        init_firehawk_topnet_parms(node.parent())
 
-            import firehawk_submit
-            import firehawk_plugin_loader
-            post_flight = firehawk_plugin_loader.module_package('post_flight').post_flight
+        self.submit = firehawk_submit.submit( node )
 
-            # ensure firehawk parms exist on topnet
-            init_firehawk_topnet_parms(node.parent())
+        # pull_all_versions_to_all_multiparms(use_json_file=True) # we are in the ui thread already, no need to exec in main thread.
+        self.set_update_workitems(node)
 
-            self.submit = firehawk_submit.submit( node )
+        firehawk_logger.info('...Save_hip_for_submission')
+        hip_name, taskgraph_file = self.submit.save_hip_for_submission(set_user_data=True, preflight=False, exec_in_main_thread=False) # Snapshot a time stamped hip file for cooking runs.  Must be used for all running tasks, not the live hip file in the current session
 
-            # self.submit = firehawk_submit.submit( hou.node('/') )
-
-            pull_all_versions_to_all_multiparms(use_json_file=True) # we are in the ui thread already, no need to exec in main thread.
-            self.set_update_workitems(node)
-
-            firehawk_logger.info('...Save_hip_for_submission')
-            hip_name, taskgraph_file = self.submit.save_hip_for_submission(set_user_data=True, preflight=False, exec_in_main_thread=False) # Snapshot a time stamped hip file for cooking runs.  Must be used for all running tasks, not the live hip file in the current session
-
-            if hou.isUIAvailable():
-                from nodegraphtopui import cookNode
-                cookNode(node)
-            else:
-                node.executeGraph(block=True)
-
-            # use a handler to save the graph on completion.
-            if node is None: return
-            pdg_context = node.getPDGGraphContext()
-            if pdg_context is None: return
-
-            def update_parms( pdg_context, taskgraph_file, hip_name, handler, event ):
-                firehawk_logger.info('...Removing event handler')
-                handler.removeFromAllEmitters()
-                firehawk_logger.info('...Running post_flight.graph_complete.')
-                post_flight.graph_complete( hip_name ) # you may wish to perform an operation on the hip asset after completion of the graph.
-                firehawk_logger.info( '...Updating Parms/Versions in this Hip session. exec_in_main_thread: {}'.format( exec_in_main_thread ) )
-                pull_all_versions_to_all_multiparms(exec_in_main_thread=exec_in_main_thread, use_json_file=True) # we update parms last, but since this is coming from a callback, we needs to use hou's ability to execute in the main thread.
-                firehawk_logger.info('...Finished update_parms in event handler.')
-
-            firehawk_logger.info('...AddEventHandler update_parms_partial')
-            update_parms_partial = partial(update_parms, pdg_context, taskgraph_file, hip_name)
+        # use a handler to save the graph on completion.
+        if node is None: return
+        pdg_context = node.getPDGGraphContext()
+        if pdg_context is None: return
+        firehawk_logger.info('...AddEventHandler update_parms_partial')
+        update_parms_partial = partial(update_parms, pdg_context, taskgraph_file, hip_name, exec_in_main_thread)
+        if not pdg_context.hasEventHandler(update_parms_partial):
             pdg_context.addEventHandler(update_parms_partial, pdg.EventType.CookComplete, True) # This should save the graph in any event that it stops, including if it is an error.
-            firehawk_logger.info('Added event handler')
+        firehawk_logger.info('Added event handler')
 
-        except ( Exception, hou.Error ), e :
-            import traceback
-            print( 'Exception: {}'.format(e) )
-            traceback.print_exc(e)
-            raise e
+        if hou.isUIAvailable():
+            from nodegraphtopui import cookNode
+            cookNode(node)
+        else:
+            node.executeGraph(block=True)
+
+

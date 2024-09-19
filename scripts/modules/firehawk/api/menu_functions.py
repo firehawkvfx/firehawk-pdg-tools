@@ -7,10 +7,11 @@ def reload_pdg():
     types = pdg.TypeRegistry.types()
     rt = types.registeredType( pdg.registeredType.Scheduler, "localscheduler" )
     rt.reload()
-    rt = types.registeredType( pdg.registeredType.Scheduler, "firehawklocalscheduler" )
-    rt.reload()
+    # rt = types.registeredType( pdg.registeredType.Scheduler, "firehawklocalscheduler" )
+    # rt.reload()
 
     import firehawk_submit as firehawk_submit
+    from importlib import reload
     reload( firehawk_submit )
     import firehawk_dynamic_versions as firehawk_dynamic_versions
     reload( firehawk_dynamic_versions )

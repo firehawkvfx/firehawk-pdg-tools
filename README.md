@@ -46,3 +46,6 @@ FH_VAR_DEBUG_PDG=10
 - Open the firehawk.pdg.versioning.demo.hip file
 - Right click on /obj/sop_geo_process/topnet1/ropfetch_flipbook, and select 'Cook with Preflight'
 
+# Other Notes:
+
+- If python scripts are executed in a plain shell on a farm outside of the current houdini process, ensure this command has the PYTHONPATH env var set to include the same path defined in firehawk-pdg-tool.json.  Normally with the local scheduler this isn't necesary, since PYTHONPATH has already been set by the package with firehawk-pdg-tool.json.  This is especially relevant for a process like PDGMQ, which wont be executed inside houdini and therefore wouldn't have access to the firehawk-pdg-tools libraries, which could be required.

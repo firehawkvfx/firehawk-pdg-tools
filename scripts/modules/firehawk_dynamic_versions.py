@@ -17,9 +17,11 @@ if hou.isUIAvailable():
     import hdefereval
 
 import firehawk_read
+from importlib import reload
 reload(firehawk_read)
 
 import firehawk_plugin_loader
+pdgkvstore = firehawk_plugin_loader.module_package('pdgkvstore').pdgkvstore
 debug_default = firehawk_plugin_loader.resolve_debug_default()
 
 delimeter = '.' # the delimeter used to seperate keys for versioning
@@ -121,7 +123,7 @@ class versions():
                 'output': 'sopoutput', 'extension': 'hip', 'type_path': 'scene', 'static_expression': True
             }
         }
-        
+
     def timeLog(self, start_time=None, label=''): # provides time passed since start time and time since last running of this method.
         if start_time is not None:
             self.start_time = start_time
@@ -129,10 +131,10 @@ class versions():
             start_time = self.start_time
         if self.last_time is None:
             self.last_time = start_time
-        
+
         message = "--- {} seconds --- Passed during Pre Submit --- {} seconds --- {}".format( '%.4f' % (time.time() - start_time),  '%.4f' % (time.time() - self.last_time), label )
         self.infoLog( message )
-        
+
         self.last_time = time.time()
 
     def debugLog(self, message):
@@ -154,7 +156,7 @@ class versions():
             print( message )
 
     def pull_versions_to_multiparm(self, hou_node_path, exec_in_main_thread=False, return_index_keys=False, read_json_file=False): # Update the multiparm on the hou_node_path rop output from the user data dict. if return_index_keys is true, no parm updates will occur, but the list of available index keys will be returned.
-        self.debugLog( 'pull versions to multiparm' )
+        self.debugLog( f'pull versions to multiparm {hou_node_path}' )
         version_db_hou_node_path = firehawk_read.get_version_db_hou_node_path( hou_node_path=hou_node_path )
         self.debugLog( 'version_db_hou_node_path: {}'.format(version_db_hou_node_path) )
 
@@ -170,17 +172,17 @@ class versions():
                         if not value.isdigit():
                             self.warningLog( 'ERROR: couldn\'t retrieve a version from key: {}'.format(key) )
                             return
-                        
+
                         self.debugLog( 'pull: get keys from file and update user data key: {} value: {}'.format(key, value) )
                         hou.node(version_db_hou_node_path).setUserData( key, value )
             else:
                 self.debugLog( 'version_db_hou_node_path: {} not found in json_object: {}'.format( version_db_hou_node_path, json_object ) )
 
         version_user_data_dict = hou.node(version_db_hou_node_path).userDataDict()
-        
+
         self.debugLog( 'pull: get keys' )
         version_db_index_keys = [ x[len(version_prefix): ] for x in version_user_data_dict if x.startswith(version_prefix) ]
-        
+
         if return_index_keys: # optionally retrieve the valid list of index keys.
             return version_db_index_keys
         else:
@@ -191,7 +193,7 @@ class versions():
 
     def push_multiparm_versions_to_version_db(self, hou_node_path, replace_existing_versions=False): # Update the versiondb relative to the the hou_node_path of the rop output from the user data dict.
         hou_node = hou.node( hou_node_path )
-        
+
         version_db_hou_node_path = firehawk_read.get_version_db_hou_node_path( hou_node_path=hou_node_path )
         version_db_hou_node = hou.node(version_db_hou_node_path)
 
@@ -201,10 +203,10 @@ class versions():
         version_prefix = 'version_'
         if replace_existing_versions:
             self.debugLog('replace_existing_versions:')
-            
+
             version_user_data_dict = hou.node(version_db_hou_node_path).userDataDict()
             existing_data = [ x[len(version_prefix): ] for x in version_user_data_dict if x.startswith(version_prefix) ]
-            
+
             # destroy existing user data matching the prefix
             for index_key in existing_data:
                 key = version_prefix + index_key
@@ -275,7 +277,7 @@ class versions():
             parm_template = hou.StringParmTemplate("seq", "Seq", 1, [seq_default])
             parm_template.setJoinWithNext(True)
             parm_folder.addParmTemplate(parm_template)
-            
+
             parm_template = hou.StringParmTemplate("shot", "Shot", 1, [shot_default])
             parm_template.setJoinWithNext(False)
             parm_folder.addParmTemplate(parm_template)
@@ -289,11 +291,10 @@ class versions():
             self.debugLog( 'Appended folder' )
             passed = node.setParmTemplateGroup(parm_group)
             self.debugLog( 'Set PTG' )
-        except ( Exception, hou.Error ), e :
+        except ( Exception, hou.Error ) as e :
             import traceback
-            print( 'Exception: {}'.format(e) )
-            traceback.print_exc(e)
-            raise e
+            tb = traceback.format_exc()
+            raise ValueError(f"{e}\nStack Trace:\n{tb}")
 
     def update_rop_output_paths_for_selected_nodes(self, kwargs={}, version_db=False):
         self.debugLog( "Update Rop Output Paths for Selected SOP/TOP Nodes." )
@@ -357,7 +358,7 @@ class versions():
                     parm_template.setJoinWithNext(True)
                     parm_folder.addParmTemplate(parm_template)
 
-                    
+
                 self.debugLog( 'Append or replace folder. version_db: {} node: {} folder: {}'.format( version_db, node, parm_folder ) )
                 parm_group = self.appendOrReplaceFolder(node, parm_folder)
                 self.debugLog( 'Appended folder' )
@@ -403,11 +404,10 @@ return version
                 hou_keyframe.setExpression(
                     py_expr, hou.exprLanguage.Python)
                 hou_parm.setKeyframe(hou_keyframe)
-            except ( Exception, hou.Error ), e :
+            except ( Exception, hou.Error ) as e :
                 import traceback
-                print( 'Exception: {}'.format(e) )
-                traceback.print_exc(e)
-                raise e
+                tb = traceback.format_exc()
+                raise ValueError(f"{e}\nStack Trace:\n{tb}")
 
     def ensure_version_db_node_exists(self, hou_node_path): # ensures the version db node exists for the  hou  node path.  It may be the same node itself, but can be a null.
         hou_node = hou.node( hou_node_path )
@@ -419,7 +419,7 @@ return version
             version_db_hou_node.setPosition( pos )
             version_db_hou_node.setColor( hou.Color(1.0, 0.725, 0) )
 
-    def underscores_to_title(self, string=None): 
+    def underscores_to_title(self, string=None):
         acronyms = ['DB']
         result = []
         for word in string.split('_'):
@@ -443,7 +443,7 @@ return version
             # get the group
             parm_group = node.parmTemplateGroup()
             parm_folder = parm_group.findFolder(parent_folder_label)
-            
+
             self.debugLog( 'Add multiparm dict to node: {} {}'.format( node, db_name  ) )
             sepparm_name = "{}_sepparm".format(db_name)
             parm_template = hou.SeparatorParmTemplate( sepparm_name )
@@ -479,7 +479,7 @@ return version
                         parm_template = hou.ToggleParmTemplate(parm_name, self.underscores_to_title(parm_name), default_value=False)
                     elif properties['type']=='button':
                         parm_template = hou.ButtonParmTemplate(parm_name, self.underscores_to_title(parm_name), script_callback=properties['script'], script_callback_language=hou.scriptLanguage.Python )
-                        
+
                         # parm_template.hide(True)
                     else:
                         self.warningLog( "ERROR, invalid/missing type for extra parm dict" )
@@ -491,10 +491,10 @@ return version
                     else:
                         # join by default.
                         parm_template.setJoinWithNext(True)
-                    
+
                     if 'auto_inherit' in properties and properties['auto_inherit']==True:
                         parm_template.setTags({"auto_inherit": "@"+parm_name})
-                    
+
                     parm_folder.addParmTemplate(parm_template)
                     parm_group = self.appendToFolderOrReplace(parm_group, parent_folder_label, parm_template )
                     node.setParmTemplateGroup(parm_group)
@@ -502,8 +502,8 @@ return version
             parm_template = hou.SeparatorParmTemplate( sepparm_name )
             parm_group = self.appendToFolderOrReplace(parm_group, parent_folder_label, parm_template )
             node.setParmTemplateGroup(parm_group)
-                
-            
+
+
             # if a folder parm already exists, use it, else define it.
             self.debugLog( "findInFolderOrTemplateGroup: {}".format( instance_name ) )
             folder_parm_template = self.findInFolderOrTemplateGroup( parm_folder, label=instance_name )
@@ -526,13 +526,13 @@ firehawk_dynamic_versions.versions(node).multiparm_housecleaning( node, multipar
             folder_parm_template.setScriptCallbackLanguage(hou.scriptLanguage.Python)
             folder_parm_template.setScriptCallback(callback_expr)
             self.debugLog( 'Added housecleaning callback for count change.' )
-            
+
             parm_group = self.appendToFolderOrReplace(parm_group, parent_folder_label, folder_parm_template )
             self.debugLog( 'Setting {} on {}'.format( parm_group, node.path() ) )
             passed = node.setParmTemplateGroup(parm_group)
 
             # Code for parameter template - index key parm per wedge
-            parm_template = hou.StringParmTemplate("{}#".format(key_name), self.underscores_to_title(key_name), 1, default_value=([""]), naming_scheme=hou.parmNamingScheme.Base1, string_type=hou.stringParmType.Regular, menu_items=([]), menu_labels=([]), icon_names=([]), item_generator_script="", item_generator_script_language=hou.scriptLanguage.Python, menu_type=hou.menuType.Normal)                            
+            parm_template = hou.StringParmTemplate("{}#".format(key_name), self.underscores_to_title(key_name), 1, default_value=([""]), naming_scheme=hou.parmNamingScheme.Base1, string_type=hou.stringParmType.Regular, menu_items=([]), menu_labels=([]), icon_names=([]), item_generator_script="", item_generator_script_language=hou.scriptLanguage.Python, menu_type=hou.menuType.Normal)
             if disable_key_parm:
                 parm_template.setConditional(hou.parmCondType.DisableWhen, "{ 0 != 1 }")
             parm_template.setJoinWithNext(True)
@@ -556,12 +556,12 @@ firehawk_dynamic_versions.versions(node).multiparm_housecleaning(node, multiparm
             versioning_folder_parm_template = self.findInFolderOrTemplateGroup( parm_group, label=parent_folder_label )
             self.debugLog( 'versioning_folder_parm_template: {}'.format( versioning_folder_parm_template ) )
             self.debugLog( '...updating parent with text fields for keynames' )
-            
+
             parm_group = node.parmTemplateGroup()
             versioning_folder_parm_template = self.appendToFolderOrReplace( versioning_folder_parm_template, label, parm_template )
             parm_group.replace( parm_group.findIndicesForFolder(parent_folder_label) , versioning_folder_parm_template )
             passed = node.setParmTemplateGroup( parm_group )
-            
+
             # Add the extra parms nested in the multiparm folder
             if extra_parms:
                 parm_group = node.parmTemplateGroup()
@@ -587,7 +587,7 @@ firehawk_dynamic_versions.versions(node).multiparm_housecleaning(node, multiparm
                                 parm_template.setConditional(hou.parmCondType.DisableWhen, "{ 0 != 1 }")
                             else:
                                 parm_template.setConditional(hou.parmCondType.DisableWhen, "")
-                        
+
                         if 'help' in properties:
                             parm_template.setHelp(properties['help'])
 
@@ -606,11 +606,11 @@ firehawk_dynamic_versions.versions(node).multiparm_housecleaning(node, multiparm
             # Lastly perform housecleaning since data may have changed
             multiparm_count = node.parm(instance_name).eval()
             self.multiparm_housecleaning( node, multiparm_count, key_prefix, key_name )
-            
+
             # Add the value parms into the multi parm
 
             self.debugLog( '...Set passed: {}'.format( passed ) )
-            
+
             if len(extra_parm_dict) > 0:
                 for hou_parm_name,properties in extra_parm_dict.items():
                     if 'lookup_db_values' in properties and properties['lookup_db_values']==False:
@@ -674,7 +674,7 @@ return value
                     hou_keyframe.setExpression( py_expr, hou.exprLanguage.Python )
                     self.debugLog( 'set keyframe on: {}'.format( hou_parm.name() )  )
                     hou_parm.setKeyframe(hou_keyframe)
-        except ( Exception, hou.Error ), e :
+        except ( Exception, hou.Error ) as e :
             import traceback
             self.warningLog( 'exception' )
             traceback.print_exc(e)
@@ -719,7 +719,7 @@ return value
         else:
             self.debugLog( "Error: couldn't find label or name matching parm template label or name" )
         self.debugLog( 'Search result: {}'.format( search_result_in_folder ) )
-        
+
         if search_result_in_folder:
             self.debugLog( "Replace in folder" )
             folder_parm_templates = self.replaceInParmTemplates( found_folder.parmTemplates(), parm_template=parm_template, replace_by=replace_by )
@@ -817,7 +817,7 @@ return value
         #kwargs['items'] = kwargs['item_path']
         self.debugLog( 'ensure_db_exists kwargs: {}'.format( kwargs ) )
         node = hou.node( kwargs['item_path'] )
-        kwargs['items'] = [ node ]    
+        kwargs['items'] = [ node ]
         parm_template_version = self.parm_template_version
         self.debugLog( 'Check parm_template_version in parm template: {} node: {}'.format( parm_template_version, node.path() ) )
         parms_are_current = [ ( x.name()=='versioning' and ( 'version_db' in x.tags() ) and ( parm_template_version==x.tags()['version_db'] ) ) for x in node.parmTemplateGroup().parmTemplates() ]
@@ -854,7 +854,7 @@ return value
 
         if work_item is None:
             work_item = pdg.workItem()
-        
+
         if work_item is not None and work_item.batchParent is not None:
             work_item = work_item.batchParent # We obtain data from the batch parent for a work item if provided.  if we already have the batch parent we just use the present work item.
 
@@ -864,19 +864,19 @@ return value
         # conditions:
         # loading hip file without a work item - use json file
         # farm loading hip file with work item
-        
+
         self.debugLog('work_item: {}'.format(work_item))
-        
+
         if work_item is not None and work_item.pyObjectAttribValue('versiondb') is not None and use_json_file == False: # for a cook process, we aquire the json data from the work item to avoid file lock issues / race conditions.
             self.debugLog( 'Pull versions: get keys from json object attribute: versiondb' )
             json_object = work_item.pyObjectAttribValue('versiondb')
 
         if json_object is None and use_json_file: # the json blob can be loaded from a file, this should only be done for a UI, not for multiple running farm tasks, since we dont know if the file is still being written to.
             self.debugLog( 'Pull versions: get keys from json file:' )
-            file_path = self.get_sidecar_json_file_path()
+            file_path = self.get_container_name()
             self.debugLog( 'file_path: {}'.format(file_path) )
             json_object = self.get_sidecar_json_object(file_path=file_path)
-        
+
         if json_object is None or len(json_object)==0 or not isinstance(json_object, dict):
             self.debugLog( 'Pull versions: no json object exists. Skipping pull versions to parms.' )
             return None
@@ -884,7 +884,8 @@ return value
         # get MD5 checksum on json_object to record what was set
         import hashlib
         last_loaded_md5 = str( hou.node('/').userData( 'last_loaded_md5' ) )
-        new_md5 = str( hashlib.md5( str(json_object) ).hexdigest() )
+        encoded_json = json.dumps(json_object).encode('utf-8')
+        new_md5 = str( hashlib.md5(encoded_json).hexdigest() )
         match = ( last_loaded_md5 == new_md5 )
 
         # Finally compare original MD5 with freshly calculated
@@ -896,7 +897,7 @@ return value
                 return None
             else:
                 self.debugLog("\n### MD5 verification no match: Pulling versions... MATCH: {} LAST MD5: {} MD5: {}\n".format( match, last_loaded_md5, new_md5))
-        
+
         self.debugLog( json.dumps( json_object, indent=4, sort_keys=True) )
 
         version_prefix='version_'
@@ -908,7 +909,7 @@ return value
 
         for version_db_hou_node_path in json_object:
             self.debugLog( 'version_db_hou_node_path: {} '.format( version_db_hou_node_path ) )
-            
+
             version_db_hou_node = hou.node(version_db_hou_node_path)
             if version_db_hou_node is None:
                 self.debugLog( 'pull: skipping non existant node' )
@@ -930,7 +931,7 @@ return value
 
             for key in json_object[version_db_hou_node_path]:
                 value = json_object[version_db_hou_node_path][key]
-                
+
                 if key.startswith( version_prefix ) and not value.isdigit():
                     self.warningLog( 'ERROR: couldn\'t retrieve a version from key: {}'.format(key) )
                     return None
@@ -942,7 +943,7 @@ return value
                     version_db_hou_node.setUserData( key, value )
 
             user_data_dict = version_db_hou_node.userDataDict()
-            
+
             self.debugLog( 'pull: get versions' )
             version_db_index_keys = [ x[len(version_prefix): ] for x in user_data_dict if x.startswith(version_prefix) ]
 
@@ -966,7 +967,7 @@ return value
                     value = firehawk_read.resolve_pdg_vars(value, node_path=version_db_hou_node_path) # if no __ tokens exist in the string, this function will not alter the output
 
                     if exec_in_main_thread:
-                        self.debugLog( 'exec_in_main_thread... set parm {}: {}'.format( hou_parm.name(), value ) ) 
+                        self.debugLog( 'exec_in_main_thread... set parm {}: {}'.format( hou_parm.name(), value ) )
                         hdefereval.executeInMainThreadWithResult( hou_parm.set, value ) # this can cause crashing if run by pdg scehduler thread at the time of writing
                     else:
                         self.debugLog( 'set parm {}: {}'.format( hou_parm.name(), value ) )
@@ -997,7 +998,7 @@ return value
         if ( index_int is None ) or ( key_prefix is None ) or ( key_name is None ):
             self.warningLog( 'Failed: update to index without variable' )
             return
-        
+
         parm_name = key_name + str(index_int)
         self.debugLog( '...Update index name: {}'.format( parm_name ) )
         if set_value:
@@ -1009,7 +1010,7 @@ return value
                     self.debugLog( 'to value: {}'.format( value ) )
                     if parm:
                         parm.set(value)
-                        
+
                     else:
                         self.warningLog( "ERROR: Parm didn't exist when attempting to set for update index" )
                 else:
@@ -1066,7 +1067,7 @@ return value
 
     def get_sorted_verdb_list( self, hou_node_path ):
         hou_node_path = firehawk_read.get_version_db_hou_node_path( hou_node_path=hou_node_path ) # the node containing the version db data can be different to the node we are interested in.
-        
+
         hou_node = hou.node( hou_node_path )
         verdb = hou_node.userDataDict()
         # sort list by value indices
@@ -1087,9 +1088,9 @@ return value
         version_db_index_keys = [ x[len(verdb_prefix): ] for x in verdb_sorted if x.startswith(verdb_prefix) ]
         return version_db_index_keys
 
-    def sorted_nicely( self, l ): 
-        convert = lambda text: int(text) if text.isdigit() else text 
-        alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    def sorted_nicely( self, l ):
+        convert = lambda text: int(text) if text.isdigit() else text
+        alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
         return sorted(l, key = alphanum_key)
 
     def update_multiparm(self, hou_node_path, index_key, version=None, exec_in_main_thread=True, debug=0):
@@ -1156,7 +1157,7 @@ return value
 
             if debug: print( 'update multiparm: defin partial insert' )
             partial_insert_multi_parm_instance = partial( insert_multi_parm_instance, hou_node_path )
-            
+
             # determine if insertion is needed
             for idx, val in enumerate( verdb_sorted ):
                 # find entry in list to match, then get index for next item, since current item has no index
@@ -1167,7 +1168,7 @@ return value
                         next_index_int = int(next_index_int)
                     else:
                         hou.ui.displayMessage('no dict entry for next index: '+next_index_key)
-                    
+
                     self.debugLog( '...Inserting a multiparm instance' )
                     if exec_in_main_thread:
                         if debug: print( 'update multiparm: insert inmain thread' )
@@ -1190,10 +1191,10 @@ return value
                     if debug: print( 'update multiparm: insert append' )
                     partial_insert_multi_parm_instance( int(multiparm_index-1) )
                 self.debugLog( 'Appended' )
-                
+
             if multiparm_index is not None:
                 self.debugLog( 'update_index_func' )
-                
+
                 def update_index_func(hou_node_path, multiparm_index, index_key):
                     import firehawk_dynamic_versions
                     hou_node = hou.node(hou_node_path)
@@ -1204,7 +1205,7 @@ return value
 
                 self.debugLog( 'use values: {} {} {}'.format( hou_node_path, multiparm_index, index_key ) )
                 # partial_update_index_func = partial( update_index_func, hou_node_path, multiparm_index, index_key )
-                
+
                 # self.debugLog( 'partial_update_index_func' )
                 if exec_in_main_thread:
                     if debug: print( 'update multiparm: defer update index in main thread' )
@@ -1214,7 +1215,7 @@ return value
                     if debug: print( 'update multiparm: defer update index' )
                     # partial_update_index_func()
                     update_index_func( hou_node_path, multiparm_index, index_key )
-                
+
                 self.debugLog( 'housecleaning' )
                 if exec_in_main_thread:
                     if debug: print( 'update multiparm: post housecleaning in main thread' )
@@ -1235,49 +1236,71 @@ return value
             parm = hou_node.parm( multiparm_name )
 
             self.debugLog( "Setting dynamic override and value on multiparm: {} {}".format( multiparm_name, version ) )
-            # self.timeLog( label='Dynamic versioning: Prepare to set Multiparm: {}'.format( multiparm_name ) )            
-            
+            # self.timeLog( label='Dynamic versioning: Prepare to set Multiparm: {}'.format( multiparm_name ) )
+
             if parm.eval() != version:
                 if exec_in_main_thread:
                     if debug: print( 'update multiparm: update version in main thread' )
-                    hdefereval.executeInMainThreadWithResult( parm.set, version ) # values in the db multiparm (UI) are updated for the index_key.  
+                    hdefereval.executeInMainThreadWithResult( parm.set, version ) # values in the db multiparm (UI) are updated for the index_key.
                 else:
                     if debug: print( 'update multiparm: update version' )
                     parm.set(version)
 
-    def get_sidecar_json_file_path( self, work_item=None, debug=debug_default ):
+    def get_container_name( self, work_item=None, debug=debug_default ):
         if work_item is None:
             hip_path = hou.node('/').userData('last_submitted_hip_file')
         else:
             hip_path = str( work_item.data.stringData('hip', 0) )
 
-        sidecar_file_path = None
+        container_name = None
         if hip_path is not None:
-            sidecar_file_path = '.'.join( hip_path.split('.')[:-1] ) + '.json'
+            container_name = os.path.splitext(os.path.basename(hip_path))[0]
+            container_name = pdgkvstore.convert_to_valid_key(container_name)
 
-            if debug: print('sidecar_file_path: {}'.format( sidecar_file_path ) )
-            return sidecar_file_path
+            if debug: print('get_container_name () container_name: {}'.format( container_name ) )
+            return container_name
 
-        if debug: print('No sidecar file at: {} from hip: {}'.format(sidecar_file_path, hip_path))
+        if debug: print('No sidecar file at: {} from hip: {}'.format(container_name, hip_path))
 
-    def get_sidecar_json_object( self, file_path=None ):
+    def get_sidecar_json_object( self, file_path=None, graph=None ):
+        if not graph:
+            work_item = pdg.workItem()
+            # raise ValueError("Couldn't get workitem / graph")
+            # TODO: better to use top_net.getPDGGraphContext().graph
+            if not work_item:
+                last_pdg_cook = hou.node(hou.contextOption("last_pdg_cook"))
+                if not last_pdg_cook:
+                    print("No cook yet! Not retrieving data for get_sidecar_json_object()")
+                    return
+                last_pdg_node = last_pdg_cook.getPDGNode()
+                if not last_pdg_node:
+                    print("No pdgnode yet! Not retrieving data for get_sidecar_json_object()")
+                    return
+                graph = last_pdg_node.context.graph
+            else:
+                graph = work_item.graph
+            if not graph:
+                print("No graph! Not retrieving data for get_sidecar_json_object()")
+                return
         if file_path is not None:
-            sidecar_file_path = file_path
+            container_name = os.path.splitext(os.path.basename(file_path))[0]
+            container_name = pdgkvstore.convert_to_valid_key(container_name)
         else:
-            sidecar_file_path = self.get_sidecar_json_file_path()
+            container_name = self.get_container_name()
 
-        self.debugLog( 'sidecar_file_path: {}'.format(sidecar_file_path) )
-        
+        # print( 'get_sidecar_json_object() container_name: {} attrib names: {}'.format(container_name, graph.attribNames()) )
+
         json_object = {}
-        if sidecar_file_path is not None and os.path.isfile( sidecar_file_path ):
-            with open(sidecar_file_path, 'r') as versiondb_file:
-                # versiondb_file = open(sidecar_file_path, 'r')
-                json_object = json.load(versiondb_file)
-                # versiondb_file.close()
+        if container_name is not None and container_name in graph.attribNames():
+            try:
+                json_object = pdgkvstore.work_item_db_get(container_name, graph=graph)
                 if not isinstance( json_object, dict ):
                     json_object = {}
-                else:
-                    self.debugLog( 'Loaded existing JSON data: {}'.format(json_object) )
+                    # print( 'Init JSON data: {{}}' )
+                # else:
+                #     print( 'Loaded existing JSON data: {}'.format(json_object) )
+            except Exception as exc:
+                raise ValueError("Failed loading json: {}".format(exc))
 
         return json_object
 
@@ -1298,15 +1321,15 @@ return value
 
         if script_dir is not None:
             file_path=os.path.join( script_dir, 'pdgenv.json' )
-            
+
             print( "\nPDG ENV: {}\n".format( file_path ) )
-            
-            with file( file_path , 'w' ) as db_file:
-            
+
+            with open( file_path , 'w' ) as db_file:
+
                 sys.stdout = db_file # Change the standard output to the file we created.
                 print( json.dumps( dict(os.environ), indent=4, sort_keys=True) )
-                
-                sys.stdout = original_stdout 
+
+                sys.stdout = original_stdout
 
         else:
             print( "/nPDG ENV:/n")

@@ -1,0 +1,1179 @@
+# Dialog script for firehawkdeadlinescheduler::2.0.0 automatically generated
+
+{
+    name	firehawkdeadlinescheduler::2.0.0
+    script	firehawkdeadlinescheduler::2.0.0
+    label	"Firehawk Deadline Scheduler"
+
+    help {
+	""
+    }
+
+    group {
+        name    "folder0"
+        label   "Scheduler"
+
+        groupsimple {
+            name    "folder7"
+            label   "Deadline"
+
+            parm {
+                name    "deadline_verbose_log"
+                label   "Verbose Logging"
+                type    toggle
+                invisible
+                default { "0" }
+            }
+            parm {
+                name    "deadline_verboselog"
+                label   "Verbose Logging"
+                type    toggle
+                default { "0" }
+            }
+            parm {
+                name    "pdg_waitforfailures"
+                label   "Block on Failed Work Items"
+                type    toggle
+                default { "0" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "deadline_ignoreexitcode"
+                label   "Ignore Command Exit Code"
+                type    toggle
+                default { "0" }
+            }
+            parm {
+                name    "deadline_pdgmq_use_ip"
+                label   "Use IP Address for PDGMQ"
+                type    toggle
+                invisible
+                default { "0" }
+            }
+            parm {
+                name    "deadline_pdgmq_as_task"
+                label   "PDGMQ Server As Task"
+                type    toggle
+                invisible
+                default { "0" }
+            }
+            parm {
+                name    "deadline_force_reload_plugin"
+                label   "Force Reload Plugin"
+                type    toggle
+                invisible
+                default { "0" }
+                disablewhen "{ deadline_pdgmq_as_task == 0 }"
+            }
+            parm {
+                name    "deadline_forcereloadplugin"
+                label   "Force Reload Plugin"
+                type    toggle
+                default { "0" }
+            }
+            parm {
+                name    "deadline_launch_monitor"
+                label   "Monitor Machine Name"
+                type    string
+                invisible
+                default { "" }
+            }
+            parm {
+                name    "task_file_timeout"
+                label   "Task File Timeout"
+                type    integer
+                default { "100000" }
+                range   { 0 1e+06 }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "deadline_launchmonitor"
+                label   "Monitor Machine Name"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "pdg_usemaxtasks"
+                label   "Enable Limit Jobs"
+                type    toggle
+                nolabel
+                joinnext
+                default { "0" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_maxtasks"
+                label   "Limit Jobs"
+                type    integer
+                default { "0" }
+                disablewhen "{ pdg_usemaxtasks == 0 }"
+                range   { 0 10 }
+                parmtag { "script_callback_language" "python" }
+            }
+            groupcollapsible {
+                name    "folder1"
+                label   "Advanced"
+
+                parm {
+                    name    "deadline_max_submit_tasks"
+                    label   "Task Submit Batch Max"
+                    type    integer
+                    invisible
+                    default { "50" }
+                    range   { 1 100 }
+                }
+                parm {
+                    name    "deadline_maxsubmittasks"
+                    label   "Task Submit Batch Max"
+                    type    integer
+                    default { "50" }
+                    range   { 1 100 }
+                }
+                parm {
+                    name    "deadline_max_check_tasks"
+                    label   "Tasks Check Batch Max"
+                    type    integer
+                    invisible
+                    default { "50" }
+                    range   { 1 100 }
+                }
+                parm {
+                    name    "deadline_maxchecktasks"
+                    label   "Tasks Check Batch Max"
+                    type    integer
+                    default { "50" }
+                    range   { 1 100 }
+                }
+                groupsimple {
+                    name    "folder9"
+                    label   "Repository"
+
+                    parm {
+                        name    "deadline_advancedinfo"
+                        label   "deadline_advanced_info"
+                        type    label
+                        nolabel
+                        default { "Only specify Repository Path if different from default Deadline repository." }
+                        hidewhen "{ deadline_overriderepo == 0 }"
+                    }
+                    parm {
+                        name    "deadline_override_repo"
+                        label   "Override Repo"
+                        type    toggle
+                        invisible
+                        nolabel
+                        default { "0" }
+                    }
+                    parm {
+                        name    "deadline_overriderepo"
+                        label   "Override Repo"
+                        type    toggle
+                        nolabel
+                        joinnext
+                        default { "0" }
+                    }
+                    parm {
+                        name    "deadline_repository"
+                        label   "Repository Path"
+                        type    string
+                        default { "" }
+                        disablewhen "{ deadline_overriderepo == 0 }"
+                    }
+                    parm {
+                        name    "deadline_connection_type"
+                        label   "Connection Type"
+                        type    string
+                        invisible
+                        default { "Direct" }
+                        disablewhen "{ deadline_override_repo == 0 }"
+                        menu {
+                            "Direct"    "Direct"
+                            "Proxy"     "Proxy"
+                        }
+                    }
+                    parm {
+                        name    "deadline_connectiontype"
+                        label   "Connection Type"
+                        type    string
+                        default { "Direct" }
+                        disablewhen "{ deadline_overriderepo == 0 }"
+                        menu {
+                            "Direct"    "Direct"
+                            "Proxy"     "Proxy"
+                        }
+                    }
+                }
+
+                groupsimple {
+                    name    "folder9_1"
+                    label   "PDG Deadline Plugin"
+
+                    parm {
+                        name    "deadline_advancedinfo2"
+                        label   "deadline_advanced_info"
+                        type    label
+                        nolabel
+                        default { "Only override if new plugin supports PDG cooking process." }
+                        hidewhen "{ deadline_overrideplugin == 0 }"
+                    }
+                    parm {
+                        name    "deadline_overrideplugin"
+                        label   "Override Plugin"
+                        type    toggle
+                        nolabel
+                        joinnext
+                        default { "0" }
+                    }
+                    parm {
+                        name    "deadline_plugin"
+                        label   "Plugin"
+                        type    string
+                        default { "PDGDeadline" }
+                        disablewhen "{ deadline_overrideplugin == 0 }"
+                    }
+                    parm {
+                        name    "deadline_plugin_directory"
+                        label   "Plugin Directory"
+                        type    directory
+                        invisible
+                        default { "$HFS/houdini/pdg/plugins" }
+                        disablewhen "{ deadline_overrideplugin == 0 }"
+                    }
+                    parm {
+                        name    "deadline_plugindirectory"
+                        label   "Plugin Directory"
+                        type    directory
+                        default { "$HFS/houdini/pdg/plugins" }
+                        disablewhen "{ deadline_overrideplugin == 0 }"
+                    }
+                    parm {
+                        name    "deadline_copyplugin"
+                        label   "Copy Plugin to Working Directory"
+                        type    toggle
+                        default { "1" }
+                    }
+                }
+
+            }
+
+        }
+
+        groupsimple {
+            name    "folder5"
+            label   "Paths"
+
+            parm {
+                name    "pdg_workingdir"
+                label   "Local Shared Path"
+                type    string
+                default { "$HIP" }
+            }
+            parm {
+                name    "overrideremoterootpath"
+                label   "Override Remote"
+                type    toggle
+                nolabel
+                joinnext
+                default { "0" }
+            }
+            parm {
+                name    "remotesharedroot"
+                label   "Remote Shared Path"
+                type    string
+                default { "\\$PDG_DIR" }
+                disablewhen "{ overrideremoterootpath == 0 }"
+            }
+            parm {
+                name    "deadline_remoteshareddesc"
+                label   "Label"
+                type    label
+                nolabel
+                default { "If using \\$PDG_DIR, then it must be set in Deadline's Mapped Paths." }
+                hidewhen "{ overrideremoterootpath == 0 }"
+            }
+            parm {
+                name    "pdg_workitemdatasource"
+                label   "Load Item Data From"
+                type    ordinal
+                default { "0" }
+                menu {
+                    "0" "Temporary JSON File"
+                    "1" "RPC Message"
+                }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_compressworkitemdata"
+                label   "Compress Work Item Data"
+                type    toggle
+                default { "1" }
+                disablewhen "{ pdg_workitemdatasource == 1 }"
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_validateoutputs"
+                label   "Validate Outputs When Recooking"
+                type    toggle
+                default { "1" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_checkexpectedoutputs"
+                label   "Check Expected Outputs on Disk"
+                type    toggle
+                default { "1" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "sepparm"
+                label   "Separator"
+                type    separator
+                default { "" }
+            }
+            parm {
+                name    "pdg_mapmode"
+                label   "Path Mapping"
+                type    ordinal
+                default { "0" }
+                menu {
+                    "0" "Global"
+                    "1" "None"
+                }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_usemapzone"
+                label   "Zone"
+                type    toggle
+                nolabel
+                joinnext
+                default { "0" }
+                disablewhen "{ pdg_mapmode == 1 }"
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "pdg_mapzone"
+                label   "Path Map Zone"
+                type    string
+                default { "$PDG_PATHMAP_ZONE" }
+                disablewhen "{ pdg_usemapzone == 0 }"
+                menureplace {
+                    "LINUX" "LINUX"
+                    "WIN"   "WIN"
+                    "MAC"   "MAC"
+                }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+    }
+
+    group {
+        name    "folder0_1"
+        label   "Job Spec"
+
+        groupsimple {
+            name    "folder2"
+            label   "Job Description"
+
+            parm {
+                name    "deadline_job_name"
+                label   "Job Name"
+                type    string
+                invisible
+                default { "PDG $HIPNAME" }
+            }
+            parm {
+                name    "deadline_jobbatchname"
+                label   "Batch Name"
+                type    string
+                default { "PDG $HIPNAME \\$DL_TIME" }
+            }
+            parm {
+                name    "deadline_jobname"
+                label   "Job Name"
+                type    string
+                default { "PDG TASKS" }
+            }
+            parm {
+                name    "deadline_job_comment"
+                label   "Comment"
+                type    string
+                invisible
+                default { "" }
+            }
+            parm {
+                name    "deadline_jobcomment"
+                label   "Comment"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_job_dept"
+                label   "Department"
+                type    string
+                invisible
+                default { "" }
+            }
+            parm {
+                name    "deadline_jobdept"
+                label   "Department"
+                type    string
+                default { "" }
+            }
+        }
+
+        groupsimple {
+            name    "folder11"
+            label   "Job Options"
+
+            parm {
+                name    "deadline_job_batch_name"
+                label   "Batch Name"
+                type    string
+                invisible
+                default { "" }
+            }
+            parm {
+                name    "deadline_job_pool"
+                label   "Pool"
+                type    string
+                invisible
+                default { "none" }
+            }
+            parm {
+                name    "deadline_jobpool"
+                label   "Pool"
+                type    string
+                default { "none" }
+            }
+            parm {
+                name    "deadline_job_group"
+                label   "Group"
+                type    string
+                invisible
+                default { "none" }
+            }
+            parm {
+                name    "deadline_jobgroup"
+                label   "Group"
+                type    string
+                default { "none" }
+            }
+            parm {
+                name    "deadline_job_priority"
+                label   "Priority"
+                type    integer
+                invisible
+                default { "50" }
+                range   { 0! 100 }
+            }
+            parm {
+                name    "deadline_jobpriority"
+                label   "Priority"
+                type    integer
+                default { "50" }
+                range   { 0! 100 }
+            }
+            parm {
+                name    "deadline_concurrent_tasks"
+                label   "Concurrent Tasks"
+                type    integer
+                invisible
+                default { "1" }
+                range   { 1 16 }
+            }
+            parm {
+                name    "deadline_concurrenttasks"
+                label   "Concurrent Tasks"
+                type    integer
+                default { "1" }
+                range   { 1 16 }
+            }
+            parm {
+                name    "deadline_pre_job_script"
+                label   "Pre Job Script"
+                type    string
+                invisible
+                default { "" }
+            }
+            parm {
+                name    "deadline_limitconcurrenttasks"
+                label   "Limit Concurrent Tasks to CPUs"
+                type    toggle
+                default { "0" }
+            }
+            parm {
+                name    "deadline_prejobscript"
+                label   "Pre Job Script"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_post_job_script"
+                label   "Post Job Script"
+                type    string
+                invisible
+                default { "" }
+            }
+            parm {
+                name    "deadline_postjobscript"
+                label   "Post Job Script"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_machine_limit"
+                label   "Machine Limit"
+                type    integer
+                invisible
+                default { "0" }
+                range   { 0 10 }
+            }
+            parm {
+                name    "deadline_machinelimit"
+                label   "Machine Limit"
+                type    integer
+                default { "0" }
+                range   { 0 10 }
+            }
+            parm {
+                name    "deadline_machine_list"
+                label   "Machine List"
+                type    string
+                invisible
+                default { "" }
+            }
+            parm {
+                name    "deadline_machinelist"
+                label   "Machine List"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_machine_list_black"
+                label   "Machine List is a Blacklist"
+                type    toggle
+                invisible
+                default { "0" }
+            }
+            parm {
+                name    "deadline_on_job_complete"
+                label   "On Job Complete"
+                type    string
+                invisible
+                default { "Nothing" }
+                menu {
+                    "Nothing"   "Nothing"
+                    "Delete"    "Delete"
+                    "Archive"   "Archive"
+                }
+            }
+            parm {
+                name    "deadline_machinelistblack"
+                label   "Machine List is a Blacklist"
+                type    toggle
+                default { "0" }
+            }
+            parm {
+                name    "deadline_limits"
+                label   "Limits"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_onjobcomplete"
+                label   "On Job Complete"
+                type    string
+                default { "Nothing" }
+                menu {
+                    "Nothing"   "Nothing"
+                    "Delete"    "Delete"
+                    "Archive"   "Archive"
+                }
+            }
+        }
+
+        group {
+            name    "folder3"
+            label   "Job File Key-Values"
+
+            multiparm {
+                name    "deadline_jobfile_kvpair"
+                label    "Job Key-Values"
+                invisible
+                parmtag { "script_callback" "" }
+
+                parm {
+                    name    "deadline_jobfile_key#"
+                    label   "Key"
+                    type    string
+                    invisible
+                    default { "" }
+                }
+                parm {
+                    name    "deadline_jobfile_value#"
+                    label   "Value"
+                    type    string
+                    invisible
+                    default { "" }
+                }
+            }
+
+            multiparm {
+                name    "deadline_jobfilekvpair"
+                label    "Job Key-Values"
+                parmtag { "script_callback" "" }
+
+                parm {
+                    name    "deadline_jobfilekey#"
+                    label   "Key"
+                    type    string
+                    default { "" }
+                }
+                parm {
+                    name    "deadline_jobfilevalue#"
+                    label   "Value"
+                    type    string
+                    default { "" }
+                }
+            }
+
+        }
+
+        group {
+            name    "folder3_1"
+            label   "Plugin File Key-Values"
+
+            multiparm {
+                name    "deadline_pluginfile_kvpair"
+                label    "Plugin File Key-Values"
+                invisible
+
+                parm {
+                    name    "deadline_pluginfile_key#"
+                    label   "Key"
+                    type    string
+                    invisible
+                    default { "" }
+                }
+                parm {
+                    name    "deadline_pluginfile_value#"
+                    label   "Value"
+                    type    string
+                    invisible
+                    default { "" }
+                }
+            }
+
+            multiparm {
+                name    "deadline_pluginfilekvpair"
+                label    "Plugin File Key-Values"
+
+                parm {
+                    name    "deadline_pluginfilekey#"
+                    label   "Key"
+                    type    string
+                    default { "" }
+                }
+                parm {
+                    name    "deadline_pluginfilevalue#"
+                    label   "Value"
+                    type    string
+                    default { "" }
+                }
+            }
+
+        }
+
+    }
+
+    group {
+        name    "folder0_2"
+        label   "Submit As Job"
+
+        parm {
+            name    "submitjob"
+            label   "Submit"
+            type    button
+            default { "0" }
+            parmtag { "script_callback" "hou.pwd().hm().submitGraphAsJob(kwargs, hou.pwd())" }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "deadline_submitjobname"
+            label   "Job Name"
+            type    string
+            default { "PDG->Submit cook of `opname(\"..\")` in $HIPNAME.hip" }
+        }
+        parm {
+            name    "usesubmitjobnode"
+            label   "Use Output Node"
+            type    toggle
+            nolabel
+            joinnext
+            default { "0" }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "submitjobnode"
+            label   "Output Node"
+            type    oppath
+            default { "" }
+            disablewhen "{ usesubmitjobnode == 0 }"
+            parmtag { "opfilter" "!!TOP!!" }
+            parmtag { "oprelative" "." }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "deadline_submitjobusemqspecs"
+            label   "Use MQ Job Options"
+            type    toggle
+            default { "0" }
+            parmtag { "script_callback_language" "python" }
+        }
+        groupsimple {
+            name    "folder15"
+            label   "Data Layer Server"
+
+            parm {
+                name    "enabledatalayerserver"
+                label   "Enable Server"
+                type    toggle
+                default { "0" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "usedatalayerport"
+                label   "Server Port"
+                type    ordinal
+                joinnext
+                default { "0" }
+                disablewhen "{ enabledatalayerserver == 0 }"
+                menu {
+                    "0" "Automatic"
+                    "1" "Custom"
+                }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "datalayerserverport"
+                label   "datalayerserverport"
+                type    integer
+                nolabel
+                default { "6339" }
+                disablewhen "{ enabledatalayerserver == 0 } { usedatalayerport == 0 }"
+                range   { 1024 49151 }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "createremotegraph"
+                label   "Auto Connect"
+                type    toggle
+                default { "0" }
+                disablewhen "{ enabledatalayerserver == 0 }"
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "submitjobwhenfinished"
+                label   "When Finished"
+                type    ordinal
+                default { "0" }
+                disablewhen "{ enabledatalayerserver == 0 }"
+                menu {
+                    "0" "Terminate"
+                    "1" "Keep Running If Error"
+                    "2" "Keep Running"
+                }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+    }
+
+    group {
+        name    "folder0_3"
+        label   "Message Queue"
+
+        parm {
+            name    "mqusage"
+            label   "Type"
+            type    integer
+            default { "1" }
+            menu {
+                "0" "Farm"
+                "1" "Local"
+                "2" "Connect"
+            }
+            range   { 0 10 }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "mqaddr"
+            label   "Address"
+            type    string
+            default { "" }
+            disablewhen "{ mqusage != 2 }"
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "usetaskcallbackport"
+            label   "usertascallbackport"
+            type    toggle
+            nolabel
+            joinnext
+            default { "0" }
+            help    "Override TCP listening port"
+            disablewhen "{ mqusage == 2 }"
+        }
+        parm {
+            name    "taskcallbackport"
+            label   "Task Callback Port"
+            type    integer
+            default { "1024" }
+            help    "The override TCP listening port range for callback server (low,high)"
+            disablewhen "{ usetaskcallbackport == 0 mqusage != 2 }"
+            range   { 0 65535 }
+        }
+        parm {
+            name    "usemqrelayport"
+            label   "usemqrelayport"
+            type    toggle
+            nolabel
+            joinnext
+            default { "0" }
+            disablewhen "{ mqusage == 2 }"
+        }
+        parm {
+            name    "mqrelayport"
+            label   "Relay Port"
+            type    integer
+            default { "1025" }
+            disablewhen "{ usemqrelayport == 0 mqusage != 2 }"
+            range   { 1024 49151 }
+        }
+        groupsimple {
+            name    "folder14"
+            label   "MQ Job Options"
+            disablewhen "{ mqusage != 0 }"
+
+            parm {
+                name    "deadline_mqoverridebatchname"
+                label   "Override Plugin"
+                type    toggle
+                nolabel
+                joinnext
+                default { "0" }
+            }
+            parm {
+                name    "deadline_mqjobbatchname"
+                label   "Batch Name"
+                type    string
+                default { "" }
+                disablewhen "{ deadline_mqoverridebatchname == 0 }"
+            }
+            parm {
+                name    "deadline_mqjobname"
+                label   "Job Name"
+                type    string
+                default { "PDG MQ" }
+            }
+            parm {
+                name    "deadline_mqjobcomment"
+                label   "Comment"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_mqjobdept"
+                label   "Department"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_mqjobpool"
+                label   "Pool"
+                type    string
+                default { "none" }
+            }
+            parm {
+                name    "deadline_mqjobgroup"
+                label   "Group"
+                type    string
+                default { "none" }
+            }
+            parm {
+                name    "deadline_mqjobpriority"
+                label   "Priority"
+                type    integer
+                default { "50" }
+                range   { 0! 100 }
+            }
+            parm {
+                name    "deadline_mqmachinelimit"
+                label   "Machine Limit"
+                type    integer
+                default { "0" }
+                range   { 0 10 }
+            }
+            parm {
+                name    "deadline_mqmachinelist"
+                label   "Machine List"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_mqmachinelistblack"
+                label   "Machine List is a Blacklist"
+                type    toggle
+                default { "0" }
+            }
+            parm {
+                name    "deadline_mqlimits"
+                label   "Limits"
+                type    string
+                default { "" }
+            }
+            parm {
+                name    "deadline_mqonjobcomplete"
+                label   "On Job Complete"
+                type    string
+                default { "Nothing" }
+                menu {
+                    "Nothing"   "Nothing"
+                    "Delete"    "Delete"
+                    "Archive"   "Archive"
+                }
+            }
+        }
+
+    }
+
+    group {
+        name    "folder0_4"
+        label   "RPC Server"
+
+        parm {
+            name    "pdg_rpcignoreerrors"
+            label   "Ignore RPC Errors"
+            type    ordinal
+            default { "1" }
+            menu {
+                "0" "Never"
+                "1" "When Cooking Batches"
+                "2" "Always"
+            }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "pdg_rpctimeout"
+            label   "Connection Timeout"
+            type    integer
+            default { "4" }
+            range   { 0 10 }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "pdg_rpcretries"
+            label   "Connection Retries"
+            type    integer
+            default { "2" }
+            range   { 0 10 }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "pdg_rpcbackoff"
+            label   "Retry Backoff"
+            type    integer
+            default { "2" }
+            range   { 0 10 }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "pdg_rpcbatch"
+            label   "Batch Poll Rate"
+            type    float
+            default { "1" }
+            range   { 0 10 }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "pdg_rpcrelease"
+            label   "Release Job Slot When Polling"
+            type    toggle
+            default { "1" }
+            parmtag { "script_callback_language" "python" }
+        }
+    }
+
+    group {
+        name    "folder0_5"
+        label   "Job Parms"
+
+        groupsimple {
+            name    "folder4"
+            label   "Paths"
+
+            parm {
+                name    "deadline_hfs"
+                label   "HFS"
+                type    string
+                default { "$HFS" }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "deadline_python"
+                label   "Python"
+                type    string
+                default { "python\\$PDG_EXE" }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "deadline_pdgexedes"
+                label   "Label"
+                type    label
+                nolabel
+                default { "\\$PDG_EXE will be mapped to .exe on Windows by PDGDeadline." }
+            }
+        }
+
+        groupsimple {
+            name    "folder8"
+            label   "Scripts"
+
+            parm {
+                name    "deadline_pre_task_script"
+                label   "Pre Task Script"
+                type    string
+                invisible
+                default { "" }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "deadline_pretaskscript"
+                label   "Pre Task Script"
+                type    string
+                default { "" }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "deadline_post_task_script"
+                label   "Post Task Script"
+                type    string
+                invisible
+                default { "" }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "deadline_posttaskscript"
+                label   "Post Task Script"
+                type    string
+                default { "" }
+                parmtag { "pdg::scheduler" "" }
+            }
+        }
+
+        groupsimple {
+            name    "folder10"
+            label   "Task Environment"
+
+            parm {
+                name    "deadline_inheritlocalenv"
+                label   "Inherit Local Environment"
+                type    toggle
+                default { "0" }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "deadline_usehoudinimaxthreads"
+                label   "deadline_usehoudinimaxthreads"
+                type    toggle
+                nolabel
+                joinnext
+                default { "0" }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "deadline_houdinimaxthreads"
+                label   "Houdini Max Threads"
+                type    integer
+                default { "0" }
+                disablewhen "{ deadline_usehoudinimaxthreads == 0 }"
+                range   { 0 10 }
+                parmtag { "pdg::scheduler" "" }
+            }
+            parm {
+                name    "deadline_envunset"
+                label   "Unset Variables"
+                type    string
+                default { "" }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            multiparm {
+                name    "deadline_envmulti"
+                label    "Environment Variables"
+
+                parm {
+                    name    "deadline_envname#"
+                    label   "Name"
+                    type    string
+                    default { "" }
+                    parmtag { "pdg::nocopy" "" }
+                    parmtag { "pdg::scheduler" "" }
+                }
+                parm {
+                    name    "deadline_envvalue#"
+                    label   "Value"
+                    type    string
+                    default { "" }
+                    parmtag { "pdg::nocopy" "" }
+                    parmtag { "pdg::scheduler" "" }
+                }
+            }
+
+        }
+
+        groupsimple {
+            name    "folder12"
+            label   "GPU Affinity Overrides"
+
+            parm {
+                name    "labelparm"
+                label   "deadline_gpudesc"
+                type    label
+                nolabel
+                default { "GPU Affinity is supported for Redshift and OpenCL nodes." }
+            }
+            parm {
+                name    "deadline_openclforcegpu"
+                label   "OpenCL Force GPU Rendering"
+                type    toggle
+                default { "0" }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "deadline_gpuspertask"
+                label   "GPUs Per Task"
+                type    integer
+                default { "0" }
+                disablewhen "{ deadline_gpusselectdevices != \"\" }"
+                range   { 0! 16! }
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+            parm {
+                name    "deadline_gpusselectdevices"
+                label   "Select GPU Devices"
+                type    string
+                default { "" }
+                disablewhen "{ deadline_gpuspertask > 0 }"
+                parmtag { "pdg::scheduler" "" }
+                parmtag { "script_callback_language" "python" }
+            }
+        }
+
+    }
+
+}

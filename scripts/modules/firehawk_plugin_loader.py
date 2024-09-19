@@ -5,6 +5,7 @@ import pkgutil
 import sys
 import firehawk.plugins
 import firehawk.api
+from importlib import reload
 
 def resolve_debug_default():
     if os.getenv('FH_VAR_DEBUG_PDG', '0') in tuple( [str(x) for x in range(12)] ):

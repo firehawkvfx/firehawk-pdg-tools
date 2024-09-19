@@ -99,11 +99,15 @@ class asset():
         self.debugLog('tags: {}'.format( tags ))
 
         # getting all required parms
-        create_asset = True
-        if 'create_asset' in tags:
-            create_asset = tags['create_asset'] # asset creation can be disabled in the dict if required.
-            if create_asset != True:
-                self.debugLog( "create_asset disabled for this workitem in tags: {}".format( tags ) )
+
+        self.debugLog( "create_asset disabled for this workitem in tags: {}".format( tags ) )
+
+        create_asset = tags.get('create_asset', True)
+        if not isinstance( create_asset, bool ):
+            raise Exception('create_asset tag value is not type bool')
+        if create_asset != True:
+            self.debugLog( "create_asset disabled for this workitem in tags: {}".format( tags ) )
+
         scheduled = True # reutrn failed if this is occuring within a scheduler
         if 'scheduled' in tags: scheduled = tags['scheduled'] # scheduled assets only upversion once.
 
@@ -140,7 +144,7 @@ class asset():
 
         asset_path = ''
         try :
-            self.debugLog( "Check if version_str is defined: {}".format(version_str) )
+            self.debugLog( "Check if version_str is defined: {}".format( tags.get('version_str', None) ) )
             if show_times: self.timeLog(label='Dynamic versioning: Prep tags to query asset path')
 
             asset_dir, asset_filename = None, None
@@ -170,10 +174,10 @@ class asset():
             else:
                 self.debugLog('...Asset create did not return either of file name or dir' )
 
-        except ( Exception ), e :
+        except ( Exception ) as e :
             if silent_errors == False:
                 import traceback
-                self.warningLog( 'ERROR: During aquiring path / creation of asset. Tags used:'.format( tags ) )
+                self.warningLog('ERROR: During aquiring path / creation of asset. Tags used: {}'.format(tags))
                 traceback.print_exc(e)
                 traceback.print_exc(tags)
                 raise e

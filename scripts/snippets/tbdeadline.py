@@ -23,14 +23,14 @@
 #
 # COMMENTS:     Defines a Thinkbox Deadline scheduler implementation for PDG.
 #               This module depends on the deadline commandline
-#               which is installed with the Deadline client, for example: 
+#               which is installed with the Deadline client, for example:
 #               %DEADLINE_PATH%\deadlinecommand.exe
 #
 #               To use this module you must ensure that DEADLINE_PATH is set
 #               in the environment. This also requires the custom PDGDeadline
 #               plugin for Deadline that is shipped with Houdini. The plugin
 #               can be found at $HFS/houdini/pdg/plugins
-#               
+#
 #               Currently supports both new and old MQ.
 #               New MQ path uses the ServiceManager to share MQ use.
 #               Supports MQ on farm, local, or connecting to existing.
@@ -73,7 +73,7 @@ def GetDeadlineCommand():
     try:
         deadlineBin = os.environ['DEADLINE_PATH']
     except KeyError:
-        # If the error is a key error it means that DEADLINE_PATH is not set. 
+        # If the error is a key error it means that DEADLINE_PATH is not set.
         # However Deadline command may be in the PATH or on OSX it could be in the file /Users/Shared/Thinkbox/DEADLINE_PATH
         pass
 
@@ -90,7 +90,7 @@ def GetDeadlineCommand():
 def CallDeadlineCommand(arguments, hideWindow=True, readStdout=True):
     """
     Calls the deadline command with given arguments.
-    Requires that Deadline be installed and DEADLINE_PATH environment path is setup. 
+    Requires that Deadline be installed and DEADLINE_PATH environment path is setup.
     Returns the output from the invoked command as well as any errors.
     """
     deadlineCommand = GetDeadlineCommand()
@@ -408,10 +408,10 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
         #     print 'state change event', event, 'event.node', event.node
         #     print 'self.name', self.name
         #     print 'event.node.workItems', event.node.workItems
-            
+
         #     print 'event.node', event.node
         #     print 'event.dependencyId', event.dependencyId
-            
+
         #     print 'event.type', event.type
         #     print 'event.message', event.message
         #     print ''
@@ -522,15 +522,15 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
             node_name = node.name
             item_command = work_item.command
 
-            
-            
+
+
             print ""
             print "onschedule work_item.node", work_item.node
             print "work_item.index", work_item.index
 
             print "work_item.command", work_item.command
-            
-            
+
+
 
             logger.debug('onSchedule input: {} {} {}'.format(node_name, item_name, item_command))
 
@@ -543,12 +543,12 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
             temp_dir = self.tempDir(False)
             work_dir = self.workingDir(False)
             script_dir = self.scriptDir(False)
-            
+
             print "temp_dir", temp_dir
             print "work_dir", work_dir
 
-            
-            
+
+
 
             item_command = item_command.replace("__PDG_ITEM_NAME__", item_name)
             item_command = item_command.replace("__PDG_SHARED_TEMP__", temp_dir)
@@ -559,9 +559,9 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
             item_command = item_command.replace("__PDG_PYTHON__", self.pythonBin(work_item, sys.platform, False))
             item_command = item_command.replace("__PDG_HYTHON__", self.hythonBin(work_item, sys.platform, False))
 
-            
+
             print "item_command", item_command
-            
+
             render_hip = re.sub(r'(^.*?-p.\")(.*?)(".-n.*)', r"\2", item_command)
             print "render_hip", render_hip
             if '.hip' in render_hip:
@@ -584,7 +584,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
                     return result
 
                 render_hip = convert_path(render_hip, prod_root)
-                
+
                 # ensure the item command uses hip from current physical location
                 item_command = re.sub(r'(^.*?-p.\")(.*?)(".-n.*)', r"\1"+render_hip+r"\3", item_command)
                 print "item_command post edit", item_command
@@ -592,14 +592,14 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
             cmd_argv = shlex.split(item_command)
 
             print "item_command", item_command
-            
+
             if len(cmd_argv) < 2:
                 logger.error('Could not shelx command: ' + item_command)
                 return pdg.scheduleResult.Succeeded
 
-            
+
             temp_root_local = self.tempDir(True)
-            
+
             ### firehawk on schedule version handling
             index_key = work_item.data.stringData('index_key', 0)
             if index_key is not None:
@@ -620,14 +620,14 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
 
             # Job info file: __PDG_TEMP__/cmdjob_item_name_index.txt
             job_file_name = '{}/cmdjob_{}_{}.txt'.format(temp_root_local, item_name, str(item_id))
-            
+
             # import hou
             # from shutil import copyfile
 
             # hip_path = hou.hipFile.path()
             # hip_basename = hou.hipFile.basename()
             # hou.hipFile.save()
-            
+
             # pdg_hip_name = '/'+work_dir.strip('/')+'/'+hip_basename
             # print "copy hip to staging dir again", pdg_hip_name
             # copyfile(hip_path, pdg_hip_name)
@@ -671,7 +671,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
                 env_idx = self.writeJobEnv(job_file, env_idx, 'HFS', hfs_path)
 
                 env_idx = self.writeJobFileEnvKeyValues(job_file, work_item, env_idx)
-                
+
 
             # Plugin info file: __PDG_TEMP__/cmdplugin.txt_name_index.txt
             plugin_file_name = '{}/cmdplugin_{}_{}.txt'.format(temp_root_local, item_name, str(item_id))
@@ -726,7 +726,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
         """
         Full path to working dir, rooted with env var which can be interpreted by slave on farm.
         Local working dir is set as user provided.
-        Non-local is set to either same as local, or can be overriden to be a variable that 
+        Non-local is set to either same as local, or can be overriden to be a variable that
         Deadline is configured to replace with its own path mapping.
         """
         workingbase = self["pdg_workingdir"].evaluateString()
@@ -740,7 +740,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
         else:
             remote_wd = '{}/{}'.format(self['remotesharedroot'].evaluateString(), workingbase)
         self.setWorkingDir(local_wd, remote_wd)
-    
+
     def pythonBin(self, work_item, platform, local):
         """
         Returns path to python executable.
@@ -805,7 +805,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
             finished_job_id = None
             self.jobs_lock.acquire()
 
-            for id,work_item_name in self.active_jobs.iteritems():
+            for id,work_item_name in self.active_jobs.items():
                 deadline_cmd = self.getUserRepositoryCommandArgument(["GetJob", str(id)])
                 job_info, job_err = CallDeadlineCommand(deadline_cmd)
                 if len(job_info) < 1 or job_info.startswith("Error"):
@@ -852,7 +852,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
     def getLogURI(self, work_item):
         """
         Returns the URI to the log file for the given work_item.
-        Note that Deadline archives its log files in bz2 format, so 
+        Note that Deadline archives its log files in bz2 format, so
         'file:///path/to/log.bz2' will be returned
         """
         work_item_id = work_item.data.stringData('deadline_jobid', 0)
@@ -903,7 +903,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
         return env_idx
 
     def writeFileKeyValues(self, out_file, kvpairs):
-        for key, value in kvpairs.iteritems():
+        for key, value in kvpairs.items():
             out_file.write('{}={}\n'.format(key, value))
 
     def writeJobFileKeyValues(self, job_file, work_item, work_dir):
@@ -914,7 +914,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
         kvpairs = {}
         hasOutputJobEntry = False
         def _getParmPairs(node):
-                nvars = self.evaluateIntOverride(node, 'deadline', 'jobfile_kvpair', work_item, 0)                
+                nvars = self.evaluateIntOverride(node, 'deadline', 'jobfile_kvpair', work_item, 0)
                 if nvars:
                     for i in xrange(1, nvars + 1):
                         name = self.evaluateStringOverride(node, 'deadline', 'jobfile_key' + str(i), work_item, '')
@@ -951,7 +951,7 @@ class DeadlineScheduler(CallbackServerMixin, PyScheduler):
         _writeParmHelper(None, env_idx)
         _writeParmHelper(work_item.node, env_idx)
 
-        for key, value in kvpairs.iteritems():
+        for key, value in kvpairs.items():
             env_idx = self.writeJobEnv(job_file, env_idx, key, value)
         return env_idx
 
