@@ -7,7 +7,7 @@
 # Because PDG doesn't know if it needs to request new asset paths until evaluation of a graph (using cache handlers per work item), asset creation is even less of a trivial excercise that can just occur before submission.
 # This outlines the steps that occur in this flow and what we now have a need to consider in PDG land:
 
-# Hip files should be saved once for submission, custom values for the submission must be updated on subsequent loads in a render queue.  
+# Hip files should be saved once for submission, custom values for the submission must be updated on subsequent loads in a render queue.
 # On submit, we timestamp a saved file, stash it on user data at '/' and ensure the hip attrib on any work item will use this.  When a file loads, in 456.py we can tell if it was intended for farm use and it should check if any dynamic values will need to be updated.  This is also applied if a user manually loads that file, since its state would still not be current.  Wedge override attribs, while meant to help with this efficiency problem, are too ephemeral to be useful by themselves in this scenario.  We must track the data more persistently for production between hip loads.  Top graphs can't be trusted to preserve data from previous cooks easily on hip load, and we also want sop nets to be able to read files independent of tops - we use a combo of multiparms and JSON sidecar files.
 # Before a cook, output parms on nodes (defining file paths) should be defined by expressions that can resolve to real paths if possible from prior cooks.  The expressions must be set before evaluation of any related work item, since if files exist at a resolved path, cooking should be skipped because the item is regarded as cached.  an exception in if a cook occurs upstream, then we should regard what is downstream as requiring updating and cook it.
 # If a cook will occur, we may need to request an asset is created, either with a specific version the user has set, or a version provided back to us from an asset server / other method - that could be as simple as incrementing a number from an existing dir tree.  Consider as well the asset may already be created, but the dir is empty. Not fun!
@@ -31,9 +31,9 @@ def pjoin(*args, **kwargs):
     return join(*args, **kwargs).replace(sep, '/') # for windows compatibility.
 
 class asset():
-    def __init__(   self, 
+    def __init__(   self,
                     debug=debug_default,
-                    logger_object=firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(), 
+                    logger_object=firehawk_plugin_loader.module_package('submit_logging').submit_logging.FirehawkLogger(),
                     start_time=None
                 ):
         self.debug = debug
@@ -44,7 +44,7 @@ class asset():
 
         self.logger_object = logger_object
 
-        
+
     def timeLog(self, start_time=None, label=''): # provides time passed since start time and time since last running of this method.
         if start_time is not None:
             self.start_time = start_time
@@ -52,10 +52,10 @@ class asset():
             start_time = self.start_time
         if self.last_time is None:
             self.last_time = start_time
-        
+
         message = "--- {} seconds --- Passed during Pre Submit --- {} seconds --- {}".format( '%.4f' % (time.time() - start_time),  '%.4f' % (time.time() - self.last_time), label )
         self.infoLog( message )
-        
+
         self.last_time = time.time()
 
     def debugLog(self, message):
@@ -90,7 +90,7 @@ class asset():
 
         if tags['format'] == 'ip': # If format is set to ip (interactive), then we set it on the output of the rop to load images directly into mplay.  We shouldn't be creating any asset in this instance
             tags['asset_path'] = 'ip'
-        
+
         tags = create_asset_module.rebuild_tags( tags ) # This custom method can be used to rebuild tags with reasonable defualt.
 
         if tags is None:
@@ -119,10 +119,10 @@ class asset():
         # We usually need to convert these to an expression on the node that channel refs the parm (varying by the wedge). tags['use_inputs_as'] == 'channels'
         # We also may need to pass through a preevaluated value to construct a path as a string. tags['use_inputs_as'] == 'tags'
         # self.dynamic_input_keys can be customised by setting it on the object.
-        
-        def update_tags( tags, format ):
+
+        def update_tags( tags, format_str ):
             for key in self.dynamic_input_keys:
-                tags[key] = format.format(key)
+                tags[key] = format_str.format(key)
 
         if 'use_inputs_as' not in tags: # be default, evaluate path output based on tag values.
             tags['use_inputs_as'] = 'tags'
@@ -156,7 +156,7 @@ class asset():
                     self.debugLog('...Using asset with specific version.  Check if it exists' )
                     asset_dir, asset_filename = create_asset_module.getAssetPath( **tags ) # retrieve the theoretical asset path, it may or may not exist, but this is used to test its existence.
                     asset_already_exists = os.path.isdir(asset_dir) # Check existance
-                
+
                 self.debugLog( "Ensure Asset exists.  asset_already_exists: {}".format(asset_already_exists) )
                 if not asset_already_exists: # create the asset if it doesn't exist, else use the existing path.
                     self.debugLog('...Create New Version:' )
@@ -168,7 +168,7 @@ class asset():
                 self.debugLog( "Using an existing path.  No new assets need to be created. value for create_asset: {}".format( create_asset ) )
                 asset_dir, asset_filename = create_asset_module.getAssetPath( **tags )
                 self.debugLog( "asset_dir: {}".format( asset_dir ) )
-            
+
             if None not in [ asset_dir, asset_filename ]:
                 asset_path = pjoin( asset_dir, asset_filename )
             else:
